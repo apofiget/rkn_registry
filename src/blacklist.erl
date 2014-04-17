@@ -1,8 +1,8 @@
 -module(blacklist).
 
--export([load_list/1, jnx_set_route/2, jnx_del_route/2]).
+-export([load_csv/1, jnx_set_route/2, jnx_del_route/2]).
 
-load_list(File) when is_list(File) ->
+load_csv(File) when is_list(File) ->
     case file:open(File, [read]) of
     	{ok, Dev} -> parse_list(Dev,[]);
     	{error, Reason} -> {error, Reason}
@@ -38,7 +38,7 @@ jnx_route(Prefix, File, L) ->
 make_jnx_route_list(_Prefix, Dev, []) -> file:close(Dev);
 
 make_jnx_route_list(Prefix, Dev, [H|T]) ->
-	Str = Prefix ++ " static route " ++ binary_to_list(H) ++ "/32 discard;\n",
+	Str = Prefix ++ " static route " ++ binary_to_list(H) ++ "/32 discard\n",
 	io:format("Str: ~p~n", [Str]),
 	case file:write(Dev, list_to_binary(Str)) of
 		ok -> make_jnx_route_list(Prefix, Dev, T);
