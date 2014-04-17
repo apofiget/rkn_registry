@@ -51,7 +51,6 @@ make_jnx_route_list(_Prefix, Dev, []) -> file:close(Dev);
 
 make_jnx_route_list(Prefix, Dev, [H|T]) ->
 	Str = Prefix ++ " static route " ++ binary_to_list(H) ++ "/32 discard\n",
-	io:format("Str: ~p~n", [Str]),
 	case file:write(Dev, list_to_binary(Str)) of
 		ok -> make_jnx_route_list(Prefix, Dev, T);
 		{error, Reason} -> {error, Reason}
