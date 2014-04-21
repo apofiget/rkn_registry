@@ -103,12 +103,6 @@ parse_xml(D) ->
 		|| E <- [lists:flatten(E) || E <- PList]
 	].
 
-post_proc(K,L) ->
-	case proplists:get_all_values(K, L) of
-		[Value] when is_list(Value) -> {K,Value};
-		Value when is_list(Value) -> {K,string:join(Value, ",")}  
-	end. 
-
 %% @hidden
 extract(#xmlAttribute{name = date, value = Value}) -> {date, Value};
 extract(#xmlAttribute{name = number, value = Value}) -> {number, unicode:characters_to_list(Value)};
