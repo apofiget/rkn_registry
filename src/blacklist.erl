@@ -4,14 +4,16 @@
 
 -compile([{parse_transform, lager_transform}]).
 
--export([load_csv/1, load_xml/1, jnx_set_route/2, jnx_del_route/2]).
+-export([load_csv/1, load_xml/1, 
+		 export_to_csv/2,
+		 jnx_set_route/2, jnx_del_route/2]).
 
 %% @spec load_csv(F :: list()) -> {ok, List} | {error, Reason}
 %% @doc Open file file F and load list from it. String separator is ';'
 %% @end
 load_csv(File) when is_list(File) ->
     case file:open(File, [read]) of
-    	{ok, Dev} -> parse_list(Dev,[]);
+    	{ok, Dev} -> parse_csv(Dev,[]);
     	{error, Reason} -> {error, Reason}
     end.
 
@@ -19,8 +21,8 @@ load_csv(File) when is_list(File) ->
 %% @doc Open XML file file F and load list from it. File encoding must be UTF-8
 %% @end
 load_xml(File) when is_list(File) ->
-    try xmerl_scan:file("priv/dump1.xml") of
-    	{Doc, _Any} -> parse_xml(Doc,[])
+    try xmerl_scan:file(File) of
+    	{Doc, _Any} -> {ok, parse_xml(Doc)}
     	catch _:E -> {error, E}
     end.
 
@@ -35,7 +37,7 @@ jnx_set_route(F, L) -> jnx_route("set", F, L).
 jnx_del_route(F, L) -> jnx_route("delete", F, L).
 
 %% @hidden
-parse_list(Dev, Acc) ->
+parse_csv(Dev, Acc) ->
 	case file:read_line(Dev) of 
 		eof -> file:close(Dev), {ok, Acc};
 		{error, Reason} -> file:close(Dev), {error, Reason};
@@ -45,46 +47,35 @@ parse_list(Dev, Acc) ->
 					El = list_to_binary(H),
 					Is_member = lists:member(El , Acc),
 					if Is_member ->  
-							parse_list(Dev, Acc);
-					 true -> parse_list(Dev, Acc ++ [El]) end;
+							parse_csv(Dev, Acc);
+					 true -> parse_csv(Dev, Acc ++ [El]) end;
 				_->
 					lager:warning("Can't parse string: ~p~n",[Data]),
-					parse_list(Dev, Acc) 
+					parse_csv(Dev, Acc) 
 			end
 	end.
 
 %% @hidden
-parse_xml(D,Acc) ->
-	case lager:trace_file("priv/xml_trace.txt", [{module, ?MODULE}], debug) of
-		Trace when is_tuple(Trace) ->  
-				L = [ El#xmlElement.content || El <- D#xmlElement.content],
-				List = [ [ 
-							case El1#xmlElement.name of
-								decision ->
-									[ extract(A) || A <- El1#xmlElement.attributes ];
-								url ->
-									%[  lager:debug("~p~n",[lager:pr(A, ?MODULE)]) || A <- El1#xmlElement.content ];
-									[ extract(A) || A <- El1#xmlElement.content ];
-								ip ->
-									[ extract(A) || A <- El1#xmlElement.content ];
-								domain ->
-									[ extract(A) || A <- El1#xmlElement.content ];
-								_-> ok
-							end
-							|| El1 <- El] || El <- L],
-				%[E || E <- List];
-				[lager:debug("~p~n",[E]) || E <- List];
-		_-> lager:error("Trace error.")
-	end.
+parse_xml(D) ->
+	L = [ El#xmlElement.content || El <- D#xmlElement.content],
+	List = [ [ 
+				case El1#xmlElement.name of
+					decision ->
+						[ extract(A) || A <- El1#xmlElement.attributes ];
+					ip ->
+						{ip, [IP || {ip, IP} <- [ extract(A) || A <- El1#xmlElement.content]]};
+					_ ->
+						[ extract(A) || A <- El1#xmlElement.content ]
+				end
+			|| El1 <- El] || El <- L],
+	[lists:flatten(E) || E <- List].
 
 %% @hidden
 
 extract(#xmlAttribute{name = date, value = Val}) -> {date, Val};
 extract(#xmlAttribute{name = number, value = Val}) -> {number, unicode:characters_to_list(Val)};
 extract(#xmlAttribute{name = org, value = Val}) -> {org, unicode:characters_to_list(Val)};
-extract(#xmlText{parents=[{url,_},{content,_},{'reg:register',_}], value = URL}) -> {url, unicode:characters_to_list(URL)};
-extract(#xmlText{parents=[{ip,_},{content,_},{'reg:register',_}], value = IP}) -> {ip, unicode:characters_to_list(IP)};
-extract(#xmlText{parents=[{domain,_},{content,_},{'reg:register',_}], value = Domain}) -> {domain, unicode:characters_to_list(Domain)};
+extract(#xmlText{parents=[{Name,_},{content,_},{'reg:register',_}], value = Value}) -> {Name, unicode:characters_to_list(Value)};
 extract(_) -> ok.
 
 %% @hidden
