@@ -1,3 +1,5 @@
+%% -*- coding: utf-8 -*-
+
 -module(blacklist).
 
 -include_lib("xmerl/include/xmerl.hrl").
@@ -5,7 +7,7 @@
 -compile([{parse_transform, lager_transform}]).
 
 -export([load_csv/1, load_xml/1, 
-		 export_to_csv/2,
+		 export_to_csv/4,
 		 jnx_set_route/2, jnx_del_route/2]).
 
 %% @spec load_csv(F :: list()) -> {ok, List} | {error, Reason}
@@ -17,7 +19,9 @@ load_csv(File) when is_list(File) ->
     	{error, Reason} -> {error, Reason}
     end.
 
-%% @spec load_xml(F :: list()) -> {ok, List} | {error, Reason}
+%% @spec load_xml(F :: list()) -> {ok, DeepList} | {error, Reason}
+%%		DeepList = [Proplist]
+%%		Proplist = [{decision,list()} | {url, list()} | {domain, list()} | {ip, list()}]
 %% @doc Open XML file file F and load list from it. File encoding must be UTF-8
 %% @end
 load_xml(File) when is_list(File) ->
@@ -25,6 +29,19 @@ load_xml(File) when is_list(File) ->
     	{Doc, _Any} -> {ok, parse_xml(Doc)}
     	catch _:E -> {error, E}
     end.
+
+%% @spec export_to_csv(F :: list(), L :: DeepList, S :: Separator, Fields) -> ok | {error, Reason}
+%%		DeepList = [Proplist]
+%%		Proplist = [{decision,list()} | {url, list()} | {domain, list()} | {ip, list()}]
+%%      Separator = character()
+%%		Fields = decision | domain | url | ip
+%% @doc Write blacklist to file F as CSV, with separator S. Format is:<\br>
+%% decision:url:ip
+export_to_csv(F,L,S,E) ->
+	case file:open(F, [raw,write]) of
+		{ok, Io} -> write_csv(Io,L,S,E);
+		{error,Reason} -> {error, Reason}
+	end. 
 
 %% @spec jnx_set_route(F :: list(), L :: list()) -> {ok, List} | {error, reason}
 %% @doc Make Juniper config to file F with set route commands.
@@ -35,6 +52,13 @@ jnx_set_route(F, L) -> jnx_route("set", F, L).
 %% @doc Make Juniper config to file F with delete route commands.
 %% @end
 jnx_del_route(F, L) -> jnx_route("delete", F, L).
+
+%% @hidden
+write_csv(Io,[],_S,_E) -> file:close(Io); 
+write_csv(Io,[H|T],S,E) ->
+	Str = string:join([proplists:get_value(El, H, "error_field_undefined") || El <- E], S),
+	file:write(Io, unicode:characters_to_binary(Str ++ "\n")),
+	write_csv(Io,T,S,E). 
 
 %% @hidden
 parse_csv(Dev, Acc) ->
@@ -57,25 +81,39 @@ parse_csv(Dev, Acc) ->
 
 %% @hidden
 parse_xml(D) ->
-	L = [ El#xmlElement.content || El <- D#xmlElement.content],
-	List = [ [ 
-				case El1#xmlElement.name of
+	PList = [ [ case El1#xmlElement.name of
 					decision ->
-						[ extract(A) || A <- El1#xmlElement.attributes ];
-					ip ->
-						{ip, [IP || {ip, IP} <- [ extract(A) || A <- El1#xmlElement.content]]};
+						Dl = [ extract(A) || A <- El1#xmlElement.attributes ],
+						[{decision, "Решение: " ++ proplists:get_value(number, Dl) ++ ", от: " ++ 
+						  proplists:get_value(date, Dl) ++ 
+						  ". Организация: " ++ proplists:get_value(org, Dl)}];
 					_ ->
 						[ extract(A) || A <- El1#xmlElement.content ]
 				end
-			|| El1 <- El] || El <- L],
-	[lists:flatten(E) || E <- List].
+			|| El1 <- El] || El <- [ El#xmlElement.content || El <- D#xmlElement.content]],
+	[begin 
+		K = proplists:get_keys(E), 
+		[  
+			case proplists:get_all_values(Key, E) of
+				[Value] when is_list(Value) -> {K,Value};
+				Value when is_list(Value) -> {K,string:join(Value, ",")}  
+			end
+		|| Key <- K] 
+	 end 
+		|| E <- [lists:flatten(E) || E <- PList]
+	].
+
+post_proc(K,L) ->
+	case proplists:get_all_values(K, L) of
+		[Value] when is_list(Value) -> {K,Value};
+		Value when is_list(Value) -> {K,string:join(Value, ",")}  
+	end. 
 
 %% @hidden
-
-extract(#xmlAttribute{name = date, value = Val}) -> {date, Val};
-extract(#xmlAttribute{name = number, value = Val}) -> {number, unicode:characters_to_list(Val)};
-extract(#xmlAttribute{name = org, value = Val}) -> {org, unicode:characters_to_list(Val)};
-extract(#xmlText{parents=[{Name,_},{content,_},{'reg:register',_}], value = Value}) -> {Name, unicode:characters_to_list(Value)};
+extract(#xmlAttribute{name = date, value = Value}) -> {date, Value};
+extract(#xmlAttribute{name = number, value = Value}) -> {number, unicode:characters_to_list(Value)};
+extract(#xmlAttribute{name = org, value = Value}) -> {org, unicode:characters_to_list(Value)};
+extract(#xmlText{parents=[{Name,_},_,_], value = Value}) -> {Name, unicode:characters_to_list(Value)};
 extract(_) -> ok.
 
 %% @hidden
