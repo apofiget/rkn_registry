@@ -35,8 +35,8 @@ load_xml(File) when is_list(File) ->
 %%		Proplist = [{decision,list()} | {url, list()} | {domain, list()} | {ip, list()}]
 %%      Separator = character()
 %%		Fields = decision | domain | url | ip
-%% @doc Write blacklist to file F as CSV, with separator S. Format is:<\br>
-%% decision:url:ip
+%% @doc Write blacklist to file F as CSV, with separator S.
+%% @end
 export_to_csv(F,L,S,E) ->
 	case file:open(F, [raw,write]) of
 		{ok, Io} -> write_csv(Io,L,S,E);
@@ -91,17 +91,18 @@ parse_xml(D) ->
 						[ extract(A) || A <- El1#xmlElement.content ]
 				end
 			|| El1 <- El] || El <- [ El#xmlElement.content || El <- D#xmlElement.content]],
-	[begin 
-		K = proplists:get_keys(E), 
-		[  
-			case proplists:get_all_values(Key, E) of
-				[Value] when is_list(Value) -> {K,Value};
-				Value when is_list(Value) -> {K,string:join(Value, ",")}  
-			end
-		|| Key <- K] 
-	 end 
-		|| E <- [lists:flatten(E) || E <- PList]
-	].
+			List = [lists:flatten(E) || E <- PList],
+			lists:foldl(fun(E, Acc) ->
+					io:format("El: ~p~n", [E]), 
+					case proplists:get_all_values(url, E)  of
+						[Val] when is_list(Val) -> Acc ++ [E];
+						Val when is_list(Val) ->  FList = [ [{url, El},
+													 {decision, proplists:get_value(decision, E)},
+						                             {domain, proplists:get_value(domain, E)},
+						                             {ip, string:join(proplists:get_all_values(ip, E) , ",")}] || El <- Val],
+						                           lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
+					end
+			end, [], List).
 
 %% @hidden
 extract(#xmlAttribute{name = date, value = Value}) -> {date, Value};
