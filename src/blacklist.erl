@@ -93,7 +93,6 @@ parse_xml(D) ->
 			|| El1 <- El] || El <- [ El#xmlElement.content || El <- D#xmlElement.content]],
 			List = [lists:flatten(E) || E <- PList],
 			lists:foldl(fun(E, Acc) ->
-					io:format("El: ~p~n", [E]), 
 					case proplists:get_all_values(url, E)  of
 						[Val] when is_list(Val) -> Acc ++ [E];
 						Val when is_list(Val) ->  FList = [ [{url, El},
