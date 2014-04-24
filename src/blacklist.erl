@@ -7,7 +7,7 @@
 
 -compile([{parse_transform, lager_transform}]).
 
--export([load_xml/1, send_req/2, get_reply/1,
+-export([load_xml/1, send_req/2, get_reply/1, last_update/0,
 		 export_to_csv/4, jnx_set_route/2, jnx_del_route/2]).
 
 %% @spec load_xml(F :: list()) -> {ok, DeepList} | {error, Reason}
@@ -68,6 +68,17 @@ get_reply(Id) ->
 														   ok = file:write_file(File, Data),
 														   {ok, [XML]} = zip:extract(File,[{cwd,"priv"},{file_list,["dump.xml"]}]),
 														   {ok, XML};
+		E -> {error, E}
+	end.
+
+%% @spec last_update() -> {ok, TimeStamp, UrgentTimeStamp} | {error, error}
+%% @doc Get register last update timestamp.
+%% @end
+last_update() ->
+	case yaws_soap_lib:call(?REG_SRV_URL, "getLastDumpDateEx",[]) of
+		{ok,_,
+			[{'p:getLastDumpDateExResponse',_,LastDumpMs,LastDumpUrgMs}]} ->
+				{ok, list_to_integer(LastDumpMs) div 1000, list_to_integer(LastDumpUrgMs) div 1000};
 		E -> {error, E}
 	end.
 
