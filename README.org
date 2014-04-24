@@ -1,5 +1,4 @@
-Author: Andrey Andruschenko <apofiget@gmail.com>
-Description: Some stuff for my work.
+* Some stuff for my work.
 
-*Blacklist
-Load data from Russian government register for site blocking.
+** Blacklist
+   Load data from Russian government register for site blocking.
