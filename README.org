@@ -1,5 +1,5 @@
 Author: Andrey Andruschenko <apofiget@gmail.com>
-Some stuff for my work.
+Description: Some stuff for my work.
 
 *Blacklist
-Load register data from http://rkn.gov.ru/ for URL blocking.
+Load data from Russian government register for site blocking.
