@@ -1,23 +1,14 @@
 %% -*- coding: utf-8 -*-
-
 -module(blacklist).
 
 -include_lib("xmerl/include/xmerl.hrl").
 
+-define(REG_SRV_URL,"http://vigruzki.rkn.gov.ru/services/OperatorRequest/?wsdl").
+
 -compile([{parse_transform, lager_transform}]).
 
--export([load_csv/1, load_xml/1, 
-		 export_to_csv/4,
-		 jnx_set_route/2, jnx_del_route/2]).
-
-%% @spec load_csv(F :: list()) -> {ok, List} | {error, Reason}
-%% @doc Open file file F and load list from it. String separator is ';'
-%% @end
-load_csv(File) when is_list(File) ->
-    case file:open(File, [read]) of
-    	{ok, Dev} -> parse_csv(Dev,[]);
-    	{error, Reason} -> {error, Reason}
-    end.
+-export([load_xml/1, send_req/2, get_reply/1,
+		 export_to_csv/4, jnx_set_route/2, jnx_del_route/2]).
 
 %% @spec load_xml(F :: list()) -> {ok, DeepList} | {error, Reason}
 %%		DeepList = [Proplist]
@@ -25,7 +16,7 @@ load_csv(File) when is_list(File) ->
 %% @doc Open XML file file F and load list from it. File encoding must be UTF-8
 %% @end
 load_xml(File) when is_list(File) ->
-    try xmerl_scan:file(File) of
+    try xmerl_scan:file(File,[{encoding, 'latin1'}]) of
     	{Doc, _Any} -> {ok, parse_xml(Doc)}
     	catch _:E -> {error, E}
     end.
@@ -53,31 +44,39 @@ jnx_set_route(F, L) -> jnx_route("set", F, L).
 %% @end
 jnx_del_route(F, L) -> jnx_route("delete", F, L).
 
+%% @spec send_req(Rf :: list(), Sf :: list()) -> {ok, ReqId} | {error, Error}
+%%		ReqId = list()
+%% @doc Send SOAP request where Rf - XML request file, Sf - request sign file.
+%% @end
+send_req(Rf, Sf) ->
+	{ok, Rfl} = file:read_file(Rf), 
+	{ok, Sfl} = file:read_file(Sf), 
+	case yaws_soap_lib:call(?REG_SRV_URL, "sendRequest", [base64:encode(Rfl),base64:encode(Sfl)]) of
+		{ok,_,
+			[{'p:sendRequestResponse',_,true,_,Id}]} -> {ok, Id};
+		E -> {error, E}
+	end.	
+
+%% @spec get_reply(Id :: list()) -> {ok, XMLFileName} | {error, Reason}
+%% @doc Fetch reply from register service, store archive and extract XML file.
+%% @end
+get_reply(Id) ->
+	File = "priv/arch/" ++ arch_name(),
+	case yaws_soap_lib:call(?REG_SRV_URL, "getResult",[Id]) of
+		{ok,_,
+			[{'p:getResultResponse',_,true,_,Reply}]} -> Data = base64:decode(Reply),
+														   ok = file:write_file(File, Data),
+														   {ok, [XML]} = zip:extract(File,[{cwd,"priv"},{file_list,["dump.xml"]}]),
+														   {ok, XML};
+		E -> {error, E}
+	end.
+
 %% @hidden
 write_csv(Io,[],_S,_E) -> file:close(Io); 
 write_csv(Io,[H|T],S,E) ->
 	Str = string:join([proplists:get_value(El, H, "error_field_undefined") || El <- E], S),
 	file:write(Io, unicode:characters_to_binary(Str ++ "\n")),
 	write_csv(Io,T,S,E). 
-
-%% @hidden
-parse_csv(Dev, Acc) ->
-	case file:read_line(Dev) of 
-		eof -> file:close(Dev), {ok, Acc};
-		{error, Reason} -> file:close(Dev), {error, Reason};
-		{ok, Data} ->	
-			case string:tokens(Data, ";") of
-				[H|T] when T =/= [] -> 
-					El = list_to_binary(H),
-					Is_member = lists:member(El , Acc),
-					if Is_member ->  
-							parse_csv(Dev, Acc);
-					 true -> parse_csv(Dev, Acc ++ [El]) end;
-				_->
-					lager:warning("Can't parse string: ~p~n",[Data]),
-					parse_csv(Dev, Acc) 
-			end
-	end.
 
 %% @hidden
 parse_xml(D) ->
@@ -105,10 +104,31 @@ parse_xml(D) ->
 
 %% @hidden
 extract(#xmlAttribute{name = date, value = Value}) -> {date, Value};
-extract(#xmlAttribute{name = number, value = Value}) -> {number, unicode:characters_to_list(Value)};
-extract(#xmlAttribute{name = org, value = Value}) -> {org, unicode:characters_to_list(Value)};
-extract(#xmlText{parents=[{Name,_},_,_], value = Value}) -> {Name, unicode:characters_to_list(Value)};
+extract(#xmlAttribute{name = number, value = Value}) -> {number, unicode:characters_to_list(win_to_utf(Value))};
+extract(#xmlAttribute{name = org, value = Value}) -> {org, unicode:characters_to_list(win_to_utf(Value))};
+extract(#xmlText{parents=[{Name,_},_,_], value = Value}) -> {Name, unicode:characters_to_list(win_to_utf(Value))};
 extract(_) -> ok.
+
+
+%% @hidden
+%% CP1251 -> UTF-8
+%% recipe from http://stm.rest.ru/blog/?p=75
+conv2(Char) ->
+	if
+		Char == 136 -> _Char = Char + 889; %% Ё
+		Char == 168 -> _Char = Char + 969; %% ё
+		Char >= 191 -> _Char = Char + 848; %% А..Яа..я
+		true -> Char
+	end.
+
+%% @hidden 
+win_to_utf(Str) ->
+	[conv2(Char) || Char <- Str].
+
+%% @hidden
+arch_name() ->
+    {{Y, M, D}, {H, Mm, _S}} = calendar:local_time(),
+    lists:flatten(io_lib:format('~4..0b-~2..0b-~2..0b-~2..0b-~2..0b.zip',[Y, M, D, H, Mm])).
 
 %% @hidden
 jnx_route(Prefix, File, L) ->

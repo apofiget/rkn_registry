@@ -20,7 +20,7 @@ test(List) ->
 	gen_server:cast(?MODULE, {start, List}).
 
 init([]) ->
-	[application:ensure_started(App) || App <- [lager,ssl,ibrowse] ],
+	[application:ensure_started(App) || App <- [lager,ssl,inets,ibrowse] ],
 	{ok, ets:new(?MODULE, [])}.
 
 handle_call(_Request, _From, State) ->
