@@ -27,10 +27,10 @@ init(_Args) ->
 	[application:ensure_started(App) || App <- [lager,inets]],
 	Tid = ets:new(?MODULE, []),
 	Tref = timer:apply_after(100, ?MODULE, send_req, [?REG_SRV_URL, "priv/request.xml", "priv/request.bin"]), 
-    {ok, #{table => Tid, lastDumpDate => 0, codestring => "", trycount => 1, timer => Tref, last_error => "", fin_state => send_req}}.
+    {ok, #{table => Tid, lastDumpDate => 0, codestring => "", update_count => 0, trycount => 1, timer => Tref, last_error => "", fin_state => send_req}}.
 
-handle_call({status}, _From, #{codestring := Code, lastDumpDate := LastDump, trycount := Try, timer := Tref, fin_state := FState, last_error := LastErr } = State) ->
-	io:format("~nCurrent state: ~nLastDump: ~p~nNextAction: ~p~nCodeString: ~p~nLastError: ~p~n", [ts2date(LastDump), FState, Code, LastErr]),
+handle_call({status}, _From, #{codestring := Code, lastDumpDate := LastDump, update_count := Update, timer := Tref, fin_state := FState, last_error := LastErr } = State) ->
+	io:format("~nCurrent state: ~nLastDumpDate: ~p~nNextAction: ~p~nCodeString: ~p~nUpdateCounter: ~p~nLastError: ~p~n", [ts2date(LastDump), FState, Code, Update, LastErr]),
 	{reply, ok, State};
 
 handle_call(_Request, _From, State) ->
@@ -53,7 +53,7 @@ handle_cast({send_req, Url, Xml, Sign}, #{lastDumpDate := LastDump, trycount := 
 			   {noreply, State#{trycount := Try + 1, timer := Timer, last_error := Any}}
 	end;
 
-handle_cast({get_reply, Url, Id},#{table := Tid, trycount := Try, timer := Tref } = State) ->
+handle_cast({get_reply, Url, Id},#{table := Tid, update_count := Update, trycount := Try, timer := Tref } = State) ->
 	timer:cancel(Tref), 
 	case blacklist:get_reply(Url, Id) of
 		{ok, File} ->
@@ -67,7 +67,7 @@ handle_cast({get_reply, Url, Id},#{table := Tid, trycount := Try, timer := Tref 
 					lager:error("Parse XML error: ~p~n",[Any])
 			end,
 			Timer = timer:apply_after(1200000, ?MODULE, send_req, [?REG_SRV_URL, "priv/request.xml", "priv/request.bin"]),
-			{noreply, State#{fin_state := send_req, trycount := 1, timer := Timer, codestring := ""}};
+			{noreply, State#{fin_state := send_req, update_count := Update + 1, trycount := 1, timer := Timer, codestring := ""}};
 		Any when Try > 3 -> 
 			Timer = timer:apply_after(1200000, ?MODULE, send_req, [?REG_SRV_URL, "priv/request.xml", "priv/request.bin"]), 
 			{noreply, State#{fin_state := send_req, trycount := 1, timer := Timer, codestring := "", last_error := Any}};
