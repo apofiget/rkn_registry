@@ -1,5 +1,4 @@
 %% -*- coding: utf-8 -*-
-
 -module(check_url).
 
 -behaviour(gen_server).

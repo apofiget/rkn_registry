@@ -7,7 +7,7 @@
 
 -compile([{parse_transform, lager_transform}]).
 
--export([load_xml/1, send_req/2, get_reply/1, last_update/0,
+-export([load_xml/1, send_req/3, get_reply/2, last_update/1,
 		 export_to_csv/4, jnx_set_route/2, jnx_del_route/2]).
 
 %% @spec load_xml(F :: list()) -> {ok, DeepList} | {error, Reason}
@@ -48,10 +48,10 @@ jnx_del_route(F, L) -> jnx_route("delete", F, L).
 %%		ReqId = list()
 %% @doc Send SOAP request where Rf - XML request file, Sf - request sign file.
 %% @end
-send_req(Rf, Sf) ->
+send_req(Url, Rf, Sf) ->
 	{ok, Rfl} = file:read_file(Rf), 
 	{ok, Sfl} = file:read_file(Sf), 
-	case yaws_soap_lib:call(?REG_SRV_URL, "sendRequest", [base64:encode(Rfl),base64:encode(Sfl)]) of
+	case yaws_soap_lib:call(Url, "sendRequest", [base64:encode(Rfl),base64:encode(Sfl)]) of
 		{ok,_,
 			[{'p:sendRequestResponse',_,true,_,Id}]} -> {ok, Id};
 		E -> {error, E}
@@ -60,22 +60,22 @@ send_req(Rf, Sf) ->
 %% @spec get_reply(Id :: list()) -> {ok, XMLFileName} | {error, Reason}
 %% @doc Fetch reply from register service, store archive and extract XML file.
 %% @end
-get_reply(Id) ->
+get_reply(Url,Id) ->
 	File = "priv/arch/" ++ arch_name(),
-	case yaws_soap_lib:call(?REG_SRV_URL, "getResult",[Id]) of
+	case yaws_soap_lib:call(Url, "getResult",[Id]) of
 		{ok,_,
 			[{'p:getResultResponse',_,true,_,Reply}]} -> Data = base64:decode(Reply),
-														   ok = file:write_file(File, Data),
-														   {ok, [XML]} = zip:extract(File,[{cwd,"priv"},{file_list,["dump.xml"]}]),
-														   {ok, XML};
+					   ok = file:write_file(File, Data),
+					   {ok, [XML]} = zip:extract(File,[{cwd,"priv"},{file_list,["dump.xml"]}]),
+					   {ok, XML};
 		E -> {error, E}
 	end.
 
 %% @spec last_update() -> {ok, TimeStamp, UrgentTimeStamp} | {error, error}
 %% @doc Get register last update timestamp.
 %% @end
-last_update() ->
-	case yaws_soap_lib:call(?REG_SRV_URL, "getLastDumpDateEx",[]) of
+last_update(Url) ->
+	case yaws_soap_lib:call(Url, "getLastDumpDateEx",[]) of
 		{ok,_,
 			[{'p:getLastDumpDateExResponse',_,LastDumpMs,LastDumpUrgMs}]} ->
 				{ok, list_to_integer(LastDumpMs) div 1000, list_to_integer(LastDumpUrgMs) div 1000};
@@ -85,7 +85,7 @@ last_update() ->
 %% @hidden
 write_csv(Io,[],_S,_E) -> file:close(Io); 
 write_csv(Io,[H|T],S,E) ->
-	Str = string:join([proplists:get_value(El, H, "error_field_undefined") || El <- E], S),
+	Str = string:join([proplists:get_all_values(El, H) || El <- E], S),
 	file:write(Io, unicode:characters_to_binary(Str ++ "\n")),
 	write_csv(Io,T,S,E). 
 
@@ -104,12 +104,15 @@ parse_xml(D) ->
 			List = [lists:flatten(E) || E <- PList],
 			lists:foldl(fun(E, Acc) ->
 					case proplists:get_all_values(url, E)  of
-						[Val] when is_list(Val) -> Acc ++ [E];
-						Val when is_list(Val) ->  FList = [ [{url, El},
-													 {decision, proplists:get_value(decision, E)},
+						[Val] when is_list(Val) -> Acc ++ [[{url, proplists:get_value(url, E)},
+									 				 {decision, proplists:get_value(decision, E)},
 						                             {domain, proplists:get_value(domain, E)},
-						                             {ip, string:join(proplists:get_all_values(ip, E) , ",")}] || El <- Val],
-						                           lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
+						                             {ip, string:join(proplists:get_all_values(ip, E) , " ")}]];
+						Val when is_list(Val) ->  FList = [ [{url, El},
+									 {decision, proplists:get_value(decision, E)},
+						             {domain, proplists:get_value(domain, E)},
+						             {ip, string:join(proplists:get_all_values(ip, E) , " ")}] || El <- Val],
+						             lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
 					end
 			end, [], List).
 
