@@ -3,8 +3,6 @@
 
 -include_lib("xmerl/include/xmerl.hrl").
 
--define(REG_SRV_URL,"http://vigruzki.rkn.gov.ru/services/OperatorRequest/?wsdl").
-
 -compile([{parse_transform, lager_transform}]).
 
 -export([load_xml/1, send_req/3, get_reply/2, last_update/1,
@@ -24,7 +22,7 @@ load_xml(File) when is_list(File) ->
 %% @spec export_to_csv(F :: list(), L :: DeepList, S :: Separator, Fields) -> ok | {error, Reason}
 %%		DeepList = [Proplist]
 %%		Proplist = [{decision,list()} | {url, list()} | {domain, list()} | {ip, list()}]
-%%      Separator = character()
+%%		Separator = character()
 %%		Fields = decision | domain | url | ip
 %% @doc Write blacklist to file F as CSV, with separator S.
 %% @end
