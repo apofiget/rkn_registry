@@ -5,7 +5,7 @@
 
 -behaviour(gen_server).
 
--export([start/0, send_req/3, get_reply/2, status/0]).
+-export([start/2, send_req/0, get_reply/1, status/0]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -16,40 +16,40 @@
 			   {5,"May"}, {6,"June"}, {7,"Jule"}, {8,"August"}, {9,"September"}, 
 			   {10,"October"}, {11,"November"}, {12,"December"}]).
 
-send_req(Url, Xml, Sign) -> gen_server:cast(?MODULE, {send_req, Url, Xml, Sign}). 
-get_reply(Url, Id) -> gen_server:cast(?MODULE, {get_reply, Url, Id}).
+send_req() -> gen_server:cast(?MODULE, {send_req, ?REG_SRV_URL}). 
+get_reply(Id) -> gen_server:cast(?MODULE, {get_reply, ?REG_SRV_URL, Id}).
 status() -> gen_server:call(?MODULE, {status}).
 
-start() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+start(Xml, Sign) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Xml, Sign], []).
 
-init(_Args) ->
+init([Xml, Sign]) ->
 	[application:ensure_started(App) || App <- [lager,inets]],
 	Tid = ets:new(?MODULE, []),
-	Tref = timer:apply_after(100, ?MODULE, send_req, [?REG_SRV_URL, "priv/request.xml", "priv/request.bin"]), 
-    {ok, #{table => Tid, lastDumpDate => 0, codestring => "", update_count => 0, trycount => 1, timer => Tref, last_error => "", fin_state => send_req}}.
+	Tref = timer:apply_after(100, ?MODULE, send_req, []), 
+    {ok, #{xml => Xml, sign => Sign, table => Tid, lastDumpDate => 0, codestring => "", update_count => 0, trycount => 1, timer => Tref, last_error => "", fin_state => send_req}}.
 
-handle_call({status}, _From, #{codestring := Code, lastDumpDate := LastDump, update_count := Update, timer := Tref, fin_state := FState, last_error := LastErr } = State) ->
-	io:format("~nCurrent state: ~nLastDumpDate: ~p~nNextAction: ~p~nCodeString: ~p~nUpdateCounter: ~p~nLastError: ~p~n", [ts2date(LastDump), FState, Code, Update, LastErr]),
+handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, timer := Tref, fin_state := FState, last_error := LastErr } = State) ->
+	io:format("~nCurrent state: ~nXMLRequest: ~p~nXMLRequestSign: ~p~nLastDumpDate: ~p~nNextAction: ~p~nCodeString: ~p~nUpdateCounter: ~p~nLastError: ~p~n", [Xml, Sign, ts2date(LastDump), FState, Code, Update, LastErr]),
 	{reply, ok, State};
 
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
-handle_cast({send_req, Url, Xml, Sign}, #{lastDumpDate := LastDump, trycount := Try, timer := Tref } = State) ->
+handle_cast({send_req, Url}, #{xml := Xml, sign := Sign, lastDumpDate := LastDump, trycount := Try, timer := Tref } = State) ->
 	timer:cancel(Tref),
 	case blacklist:last_update(Url) of
 		{ok, Last, LastUrg} when LastDump < Last; LastDump < LastUrg ->
 				case blacklist:send_req(Url, Xml, Sign) of
 					{ok, Code} -> 
-							Timer = timer:apply_after(180000, ?MODULE, get_reply, [Url, Code]), 
+							Timer = timer:apply_after(180000, ?MODULE, get_reply, [Code]), 
 							{noreply, State#{lastDumpDate := lists:max([LastDump, LastUrg]), codestring := Code, fin_state := get_reply, timer := Timer}};
-					Any -> Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, [?REG_SRV_URL, "priv/request.xml", "priv/request.bin"]),
+					Any -> Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, []),
 							{noreply, State#{trycount := Try + 1, time := Timer, last_error := Any}}
 				end;
-		{ok, Last, LastUrg} -> Timer = timer:apply_after(1200000, ?MODULE, send_req, [?REG_SRV_URL, "priv/request.xml", "priv/request.bin"]),
+		{ok, Last, LastUrg} -> Timer = timer:apply_after(1200000, ?MODULE, send_req, []),
 							{noreply, State#{timer := Timer}};
-		Any -> Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, [?REG_SRV_URL, "priv/request.xml", "priv/request.bin"]),
+		Any -> Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, []),
 			   {noreply, State#{trycount := Try + 1, timer := Timer, last_error := Any}}
 	end;
 
@@ -60,19 +60,18 @@ handle_cast({get_reply, Url, Id},#{table := Tid, update_count := Update, trycoun
 			case blacklist:load_xml(File) of 
 				{ok, List} ->
 					lists:map(fun([{url, U}, {decision, D}, {domain, Dom}, {ip, IPs}] = E) -> 
-									Hash = erlang:phash2(U ++ IPs),
-									ets:insert(Tid, {Hash, E})
+									ets:insert(Tid, {erlang:phash2(U ++ IPs), E})
 							end, List);
 				Any -> 
 					lager:error("Parse XML error: ~p~n",[Any])
 			end,
-			Timer = timer:apply_after(1200000, ?MODULE, send_req, [?REG_SRV_URL, "priv/request.xml", "priv/request.bin"]),
+			Timer = timer:apply_after(1200000, ?MODULE, send_req, []),
 			{noreply, State#{fin_state := send_req, update_count := Update + 1, trycount := 1, timer := Timer, codestring := ""}};
 		Any when Try > 3 -> 
-			Timer = timer:apply_after(1200000, ?MODULE, send_req, [?REG_SRV_URL, "priv/request.xml", "priv/request.bin"]), 
+			Timer = timer:apply_after(1200000, ?MODULE, send_req, []), 
 			{noreply, State#{fin_state := send_req, trycount := 1, timer := Timer, codestring := "", last_error := Any}};
 		Any -> 
-			Timer = timer:apply_after(Try * 120000, ?MODULE, get_reply, [Url, Id]), 
+			Timer = timer:apply_after(Try * 120000, ?MODULE, get_reply, [Id]), 
 			{noreply, State#{trycount := Try + 1, timer := Timer}}
 	end; 
 
