@@ -51,7 +51,7 @@ handle_cast({send_req, Url}, #{xml := Xml, sign := Sign, lastDumpDate := LastDum
 						Timer = timer:apply_after(180000, ?MODULE, get_reply, [Code]), 
 						{noreply, State#{lastDumpDate := unix_ts(), codestring := Code, fin_state := get_reply, timer := Timer}};
 					Any ->  
-						lager:debug("Not success reply. Try later.~n"),
+						lager:debug("Not success reply. Try later. Reply: ~p~n",[Any]),
 						Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, []),
 						{noreply, State#{trycount := Try + 1, time := Timer, last_error := Any}}
 				end;
