@@ -24,10 +24,13 @@ start(Xml, Sign) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Xml, Sign], []).
 
 init([Xml, Sign]) ->
+	{ok, Trace} = lager:trace_file("priv/logs/updates.log", [{module, ?MODULE}], debug),
 	[application:ensure_started(App) || App <- [lager,inets]],
 	Tid = ets:new(?MODULE, []),
 	Tref = timer:apply_after(100, ?MODULE, send_req, []), 
-    {ok, #{xml => Xml, sign => Sign, table => Tid, lastDumpDate => 0, codestring => "", update_count => 0, trycount => 1, timer => Tref, last_error => "", fin_state => send_req}}.
+    {ok, #{xml => Xml, sign => Sign, table => Tid, lastDumpDate => 0, codestring => "", 
+    	   update_count => 0, trycount => 1, timer => Tref, 
+    	   last_error => "", fin_state => send_req, trace => Trace}}.
 
 handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, timer := Tref, fin_state := FState, last_error := LastErr } = State) ->
 	io:format("~nCurrent state: ~nXMLRequest: ~p~nXMLRequestSign: ~p~nLastDumpDate: ~p~nNextAction: ~p~nCodeString: ~p~nUpdateCounter: ~p~nLastError: ~p~n", [Xml, Sign, ts2date(LastDump), FState, Code, Update, LastErr]),
@@ -38,18 +41,26 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({send_req, Url}, #{xml := Xml, sign := Sign, lastDumpDate := LastDump, trycount := Try, timer := Tref } = State) ->
 	timer:cancel(Tref),
+	Ts = unix_ts(),
 	case blacklist:last_update(Url) of
-		{ok, Last, LastUrg} when LastDump < Last; LastDump < LastUrg ->
+		{ok, Last, LastUrg} when LastDump < LastUrg; Ts - LastDump > 43200 ->
+				lager:debug("LastUpdate: ~p, LastRegDump: ~p, LastRegUrgDump: ~p~n",[ts2date(LastDump),ts2date(Last),ts2date(LastUrg)]),
 				case blacklist:send_req(Url, Xml, Sign) of
-					{ok, Code} -> 
-							Timer = timer:apply_after(180000, ?MODULE, get_reply, [Code]), 
-							{noreply, State#{lastDumpDate := lists:max([LastDump, LastUrg]), codestring := Code, fin_state := get_reply, timer := Timer}};
-					Any -> Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, []),
-							{noreply, State#{trycount := Try + 1, time := Timer, last_error := Any}}
+					{ok, Code} ->
+						lager:debug("Wait for register with code: ~p~n",[Code]),
+						Timer = timer:apply_after(180000, ?MODULE, get_reply, [Code]), 
+						{noreply, State#{lastDumpDate := unix_ts(), codestring := Code, fin_state := get_reply, timer := Timer}};
+					Any ->  
+						lager:debug("Not success reply. Try later.~n"),
+						Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, []),
+						{noreply, State#{trycount := Try + 1, time := Timer, last_error := Any}}
 				end;
-		{ok, Last, LastUrg} -> Timer = timer:apply_after(1200000, ?MODULE, send_req, []),
-							{noreply, State#{timer := Timer}};
-		Any -> Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, []),
+		{ok, Last, LastUrg} -> 
+						lager:debug("Nothing update: ~p~n",[ts2date(unix_ts())]),
+						Timer = timer:apply_after(1200000, ?MODULE, send_req, []),
+						{noreply, State#{timer := Timer}};
+		Any -> lager:debug("Unexpected reply: ~p~n",[Any]),
+			   Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, []),
 			   {noreply, State#{trycount := Try + 1, timer := Timer, last_error := Any}}
 	end;
 
@@ -57,6 +68,7 @@ handle_cast({get_reply, Url, Id},#{table := Tid, update_count := Update, trycoun
 	timer:cancel(Tref), 
 	case blacklist:get_reply(Url, Id) of
 		{ok, File} ->
+			lager:debug("Code: ~p, Load register to file: ~p~n",[Id,File]),
 			case blacklist:load_xml(File) of 
 				{ok, List} ->
 					lists:map(fun([{url, U}, {decision, D}, {domain, Dom}, {ip, IPs}] = E) -> 
@@ -81,7 +93,8 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(_Reason, State) ->
+	lager:stop_trace(maps:get(trace, State)), 
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -94,3 +107,6 @@ ts2date(Ts) ->
 		calendar:now_to_local_time({Ts div 1000000, Ts rem 1000000, 0}),
     lists:flatten(io_lib:format('~2..0b-~3s-~4..0b, ~2..0b:~2..0b',
 				[D, proplists:get_value(M, ?MONTH), Y, H, Min])).
+unix_ts() ->
+    {Mega, Seconds, _} = erlang:now(),
+    Mega * 1000000 + Seconds.
