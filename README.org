@@ -4,13 +4,17 @@
    Load data from Russian government registry for site blocking.
    Need to have XML request and sign files.
    Server start as:
+   #+BEGIN_EXAMPLE Erlang
     registry:start(XMLRequestFile, SignFile).
+   #+END_EXAMPLE
    For example:
    #+BEGIN_EXAMPLE Erlang
     registry:start("priv/request.xml", "priv/request.bin").
    #+END_EXAMPLE
    Server status:
+   #+BEGIN_EXAMPLE Erlang
     registry:status().
+   #+END_EXAMPLE
    Example output:
    #+BEGIN_EXAMPLE Erlang
     egistry:status().
@@ -18,9 +22,9 @@
     Current state: 
     XMLRequest: "priv/request.xml"
     XMLRequestSign: "priv/request.bin"
-    LastDumpDate: "07-May-2014, 10:44"
+    LastDumpDate: "02-May-2014, 14:44"
     NextAction: get_reply
-    CodeString: "dadc14ed0f7a83db1c7508e17819677b"
+    CodeString: "d0dc14ed0f7a834e1c9508e17819677b"
     UpdateCounter: 0
     LastError: []
     ok
