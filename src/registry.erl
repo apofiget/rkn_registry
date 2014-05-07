@@ -68,7 +68,7 @@ handle_cast({get_reply, Url, Id},#{table := Tid, update_count := Update, trycoun
 	timer:cancel(Tref), 
 	case blacklist:get_reply(Url, Id) of
 		{ok, File} ->
-			lager:debug("Code: ~p, Load register to file: ~p~n",[Id,File]),
+			lager:debug("Code: ~p, Load registry to file: ~p~n",[Id,File]),
 			case blacklist:load_xml(File) of 
 				{ok, List} ->
 					lists:map(fun([{url, U}, {decision, _D}, {domain, _Dom}, {ip, IPs}] = E) -> 
