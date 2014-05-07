@@ -1,4 +1,27 @@
 * Some stuff for my work.
 
 ** Blacklist
-   Load data from Russian government register for site blocking.
+   Load data from Russian government registry for site blocking.
+   Need to have XML request and sign files.
+   Server start as:
+    registry:start(XMLRequestFile, SignFile).
+   For example:
+   #+BEGIN_EXAMPLE Erlang
+    registry:start("priv/request.xml", "priv/request.bin").
+   #+END_EXAMPLE
+   Server status:
+    registry:status().
+   Example output:
+   #+BEGIN_EXAMPLE Erlang
+    egistry:status().
+
+    Current state: 
+    XMLRequest: "priv/request.xml"
+    XMLRequestSign: "priv/request.bin"
+    LastDumpDate: "07-May-2014, 10:44"
+    NextAction: get_reply
+    CodeString: "dadc14ed0f7a83db1c7508e17819677b"
+    UpdateCounter: 0
+    LastError: []
+    ok
+   #+END_EXAMPLE
