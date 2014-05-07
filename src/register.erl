@@ -44,7 +44,7 @@ handle_cast({send_req, Url}, #{xml := Xml, sign := Sign, lastDumpDate := LastDum
 	Ts = unix_ts(),
 	case blacklist:last_update(Url) of
 		{ok, Last, LastUrg} when LastDump < LastUrg; Ts - LastDump > 43200 ->
-				lager:debug("LastUpdate: ~p, LastRegDump: ~p, LastRegUrgDump: ~p~n",[ts2date(LastDump),ts2date(Last),ts2date(LastUrg)]),
+				lager:debug("LastUpdate: ~ts, LastRegDump: ~ts, LastRegUrgDump: ~ts~n",[ts2date(LastDump),ts2date(Last),ts2date(LastUrg)]),
 				case blacklist:send_req(Url, Xml, Sign) of
 					{ok, Code} ->
 						lager:debug("Wait for register with code: ~p~n",[Code]),
@@ -56,7 +56,7 @@ handle_cast({send_req, Url}, #{xml := Xml, sign := Sign, lastDumpDate := LastDum
 						{noreply, State#{trycount := Try + 1, time := Timer, last_error := Any}}
 				end;
 		{ok, Last, LastUrg} -> 
-						lager:debug("Nothing update: ~p~n",[ts2date(unix_ts())]),
+						lager:debug("Nothing update at ~ts~n",[ts2date(unix_ts())]),
 						Timer = timer:apply_after(1200000, ?MODULE, send_req, []),
 						{noreply, State#{timer := Timer}};
 		Any -> lager:debug("Unexpected reply: ~p~n",[Any]),
@@ -75,16 +75,22 @@ handle_cast({get_reply, Url, Id},#{table := Tid, update_count := Update, trycoun
 									ets:insert(Tid, {erlang:phash2(U ++ IPs), E})
 							end, List);
 				Any -> 
-					lager:error("Parse XML error: ~p~n",[Any])
+					lager:error("Parse XML error: ~p~n",[term_to_binary(Any)])
 			end,
 			Timer = timer:apply_after(1200000, ?MODULE, send_req, []),
 			{noreply, State#{fin_state := send_req, update_count := Update + 1, trycount := 1, timer := Timer, codestring := ""}};
-		Any when Try > 3 -> 
+		{error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}} when Try > 3 ->
+			lager:debug("Reply load error: ~ts~n",[unicode:characters_to_list(list_to_binary(Error))]),
 			Timer = timer:apply_after(1200000, ?MODULE, send_req, []), 
-			{noreply, State#{fin_state := send_req, trycount := 1, timer := Timer, codestring := "", last_error := Any}};
-		Any -> 
+			{noreply, State#{fin_state := send_req, trycount := 1, timer := Timer, codestring := "", last_error := list_to_binary(Error)}};
+		{error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}} -> 
+			lager:debug("Code: ~p, File load error: ~ts, try later...~n",[Id,unicode:characters_to_list(list_to_binary(Error))]),
 			Timer = timer:apply_after(Try * 120000, ?MODULE, get_reply, [Id]), 
-			{noreply, State#{trycount := Try + 1, timer := Timer}}
+			{noreply, State#{trycount := Try + 1, timer := Timer}};
+		Any ->
+			lager:debug("Unknown error: ~p~n",[Any]),
+			Timer = timer:apply_after(1200000, ?MODULE, send_req, []), 
+			{noreply, State#{fin_state := send_req, trycount := 1, timer := Timer, codestring := "", last_error := term_to_binary(Any)}}
 	end; 
 
 handle_cast(_Msg, State) ->
