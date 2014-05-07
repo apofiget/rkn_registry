@@ -56,7 +56,7 @@ handle_cast({send_req, Url}, #{xml := Xml, sign := Sign, lastDumpDate := LastDum
 						{noreply, State#{trycount := Try + 1, time := Timer, last_error := Any}}
 				end;
 		{ok, _Last, _LastUrg} -> 
-						lager:debug("Nothing update~n"),
+						lager:debug("Nothing to update"),
 						Timer = timer:apply_after(1200000, ?MODULE, send_req, []),
 						{noreply, State#{timer := Timer}};
 		Any -> lager:debug("Unexpected reply: ~p~n",[Any]),
