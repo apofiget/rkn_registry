@@ -29,3 +29,4 @@
     LastError: []
     ok
    #+END_EXAMPLE
+   Server store downloaded archive to priv/arch and last XML dump to priv/dump.xml
