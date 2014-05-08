@@ -17,7 +17,7 @@
    #+END_EXAMPLE
    Example output:
    #+BEGIN_EXAMPLE Erlang
-    egistry:status().
+    registry:status().
 
     Current state: 
     XMLRequest: "priv/request.xml"
