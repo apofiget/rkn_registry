@@ -1,6 +1,7 @@
 * Some stuff for my work.
 
 ** Blacklist
+*** Start as standalone process.
    Load data from Russian government registry for site blocking.
    Need to have XML request and sign files.
    Server start as:
@@ -30,3 +31,8 @@
     ok
    #+END_EXAMPLE
    Server store downloaded archive to priv/arch and last XML dump to priv/dump.xml
+*** Start as erlang application
+   #+BEGIN_EXAMPLE Erlang
+   application:start(rkn_registry).
+   #+END_EXAMPLE
+   And then browse http://localhost:8888/ and http://localhost:8888/status/
