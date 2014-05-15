@@ -24,7 +24,7 @@ start(Xml, Sign) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Xml, Sign], []).
 
 init([Xml, Sign]) ->
-	{ok, Trace} = lager:trace_file("priv/logs/updates.log", [{module, ?MODULE}], debug),
+	{ok, Trace} = lager:trace_file(get_option(trace), [{module, ?MODULE}], debug),
 	[application:ensure_started(App) || App <- [lager,inets]],
 	Tid = ets:new(?MODULE, []),
 	Tref = timer:apply_after(100, ?MODULE, send_req, []), 

@@ -1,6 +1,7 @@
 -define(DEFCONF, [
 			{xml, "priv/request.xml"},
 			{sign, "priv/request.bin"},
+			{trace, "priv/logs/updates.log"},
 			{doc_root, file:get_cwd()},
 			{hostname, "localhost"},
 			{port, 8888}
