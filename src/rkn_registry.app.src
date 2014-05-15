@@ -1,0 +1,17 @@
+{application, rkn_registry,
+ [
+  {description, "Load russian government registry for URL blocking."},
+  {vsn, "0.3"},
+  {registered, []},
+  {modules,[
+	blacklist,
+	check_url,
+	registry
+  ]},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { rkn_registry, []}},
+  {env, []}
+ ]}.
