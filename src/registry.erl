@@ -5,7 +5,7 @@
 
 -behaviour(gen_server).
 
--export([start/2, send_req/0, get_reply/1, status/0]).
+-export([start/2, send_req/0, get_reply/1, status/0, list/0]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -19,6 +19,7 @@
 send_req() -> gen_server:cast(?MODULE, {send_req, ?REG_SRV_URL}). 
 get_reply(Id) -> gen_server:cast(?MODULE, {get_reply, ?REG_SRV_URL, Id}).
 status() -> gen_server:call(?MODULE, {status}).
+list() -> gen_server:call(?MODULE, {list}). 
 
 start(Xml, Sign) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Xml, Sign], []).
@@ -36,8 +37,14 @@ handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, las
 	io:format("~nCurrent state: ~nXMLRequest: ~p~nXMLRequestSign: ~p~nLastDumpDate: ~p~nNextAction: ~p~nCodeString: ~p~nUpdateCounter: ~p~nLastError: ~p~n", [Xml, Sign, ts2date(LastDump), FState, Code, Update, LastErr]),
 	{reply, ok, State};
 
-handle_call(_Request, _From, State) ->
-    {reply, ok, State}.
+handle_call({list}, _From, #{ table := Tid } = State) -> 
+	List = case ets:tab2list(Tid) of
+				[] -> [];
+				L  -> [E || {_,E} <- L]
+			end, 
+	{reply,List,State};
+
+handle_call(_Request, _From, State) -> {reply, ok, State}.
 
 handle_cast({send_req, Url}, #{xml := Xml, sign := Sign, lastDumpDate := LastDump, trycount := Try, timer := Tref } = State) ->
 	timer:cancel(Tref),
