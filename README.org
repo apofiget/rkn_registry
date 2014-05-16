@@ -20,19 +20,19 @@
    #+BEGIN_EXAMPLE Erlang
     registry:status().
 
-    Current state: 
-    XMLRequest: "priv/request.xml"
-    XMLRequestSign: "priv/request.bin"
-    LastDumpDate: "02-May-2014, 14:44"
-    NextAction: get_reply
-    CodeString: "d0dc14ed0f7a834e1c9508e17819677b"
-    UpdateCounter: 0
-    LastError: []
-    ok
+    [{"XMLRequest","priv/request.xml"},
+     {"XMLRequestSign","priv/request.bin"},
+     {"lastDumpDate","16-May-2014, 06:04"},
+     {"NextAction","send_req"},
+     {"UpdateCounter",2},
+     {"LastError",[]},
+     {"CodeString",[]},
+     {"LastTryCount",1}]
    #+END_EXAMPLE
    Server store downloaded archive to priv/arch and last XML dump to priv/dump.xml
 *** Start as erlang application
    #+BEGIN_EXAMPLE Erlang
    application:start(rkn_registry).
    #+END_EXAMPLE
-   And then browse http://localhost:8888/ and http://localhost:8888/status/
+   And then browse http://localhost:8888/?act=<ACTION>, where
+   ACTION = list | status | domains
