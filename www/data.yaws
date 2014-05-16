@@ -1,10 +1,6 @@
 <erl>
 	out(Arg) ->
 		Params = yaws_api:parse_query(Arg),
-		Json = case proplists:get_value(act, Params) of
-					"list" -> json2:encode([ json2:obj_from_list(E) || E <- registry:list()]);
-					"status" -> json2:encode(json2:obj_from_list(registry:status())); 
-					_-> json2:encode([ json2:obj_from_list(E) || E <- registry:list()])
-			   end,
+		Json = registry_web_tool:act(proplists:get_value("act", Params, "undefined"), Arg),
 	{content, "application/json; charset=utf-8", Json}.
 </erl>

@@ -5,7 +5,8 @@
 
 -behaviour(gen_server).
 
--export([start/2, send_req/0, get_reply/1, status/0, list/0]).
+-export([start/2, send_req/0, get_reply/1, 
+		status/0, list/0, domains/0]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -19,7 +20,8 @@
 send_req() -> gen_server:cast(?MODULE, {send_req, ?REG_SRV_URL}). 
 get_reply(Id) -> gen_server:cast(?MODULE, {get_reply, ?REG_SRV_URL, Id}).
 status() -> gen_server:call(?MODULE, {status}).
-list() -> gen_server:call(?MODULE, {list}). 
+list() -> gen_server:call(?MODULE, {list}).
+domains() -> gen_server:call(?MODULE, {domains}).
 
 start(Xml, Sign) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Xml, Sign], []).
@@ -33,9 +35,14 @@ init([Xml, Sign]) ->
     	   update_count => 0, trycount => 1, timer => Tref, 
     	   last_error => "", fin_state => send_req, trace => Trace}}.
 
-handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, fin_state := FState, last_error := LastErr } = State) ->
-	io:format("~nCurrent state: ~nXMLRequest: ~p~nXMLRequestSign: ~p~nLastDumpDate: ~p~nNextAction: ~p~nCodeString: ~p~nUpdateCounter: ~p~nLastError: ~p~n", [Xml, Sign, ts2date(LastDump), FState, Code, Update, LastErr]),
-	{reply, ok, State};
+handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, fin_state := FState, last_error := LastErr, trycount := Try } = State) ->
+	R = [
+			{"XMLRequest", Xml}, {"XMLRequestSign", Sign},
+			{"lastDumpDate",ts2date(LastDump)}, {"NextAction", atom_to_list(FState)},
+			{"UpdateCounter", Update}, {"LastError", LastErr},
+			{"CodeString", Code}, {"LastTryCount", Try}
+		],
+	{reply, R, State};
 
 handle_call({list}, _From, #{ table := Tid } = State) -> 
 	List = case ets:tab2list(Tid) of
@@ -43,6 +50,18 @@ handle_call({list}, _From, #{ table := Tid } = State) ->
 				L  -> [E || {_,E} <- L]
 			end, 
 	{reply,List,State};
+
+handle_call({domains}, _From, #{ table := Tid } = State) -> 
+	R = case ets:tab2list(Tid) of
+				[] -> [];
+				L  -> lists:foldl(fun(E, Acc) -> 
+						case lists:member(E, Acc) of
+							true -> Acc;
+							false -> Acc ++ [E]
+						end 
+						end, [], [proplists:get_value(domain, E) || {_,E} <- L])
+		end, 
+	{reply, R, State};
 
 handle_call(_Request, _From, State) -> {reply, ok, State}.
 
