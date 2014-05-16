@@ -6,7 +6,7 @@
 -behaviour(gen_server).
 
 -export([start/2, send_req/0, get_reply/1, 
-		status/0, list/0, domains/0]).
+		status/0, list/0, filter/1]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -21,7 +21,7 @@ send_req() -> gen_server:cast(?MODULE, {send_req, ?REG_SRV_URL}).
 get_reply(Id) -> gen_server:cast(?MODULE, {get_reply, ?REG_SRV_URL, Id}).
 status() -> gen_server:call(?MODULE, {status}).
 list() -> gen_server:call(?MODULE, {list}).
-domains() -> gen_server:call(?MODULE, {domains}).
+filter(Crt) -> gen_server:call(?MODULE, {filter, Crt}).
 
 start(Xml, Sign) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Xml, Sign], []).
@@ -51,7 +51,7 @@ handle_call({list}, _From, #{ table := Tid } = State) ->
 			end, 
 	{reply,List,State};
 
-handle_call({domains}, _From, #{ table := Tid } = State) -> 
+handle_call({Filter, Crt}, _From, #{ table := Tid } = State) -> 
 	R = case ets:tab2list(Tid) of
 				[] -> [];
 				L  -> lists:foldl(fun(E, Acc) -> 
@@ -59,7 +59,7 @@ handle_call({domains}, _From, #{ table := Tid } = State) ->
 							true -> Acc;
 							false -> Acc ++ [E]
 						end 
-						end, [], [proplists:get_value(domain, E) || {_,E} <- L])
+						end, [], [proplists:get_value(Crt, E) || {_,E} <- L])
 		end, 
 	{reply, R, State};
 
@@ -97,7 +97,7 @@ handle_cast({get_reply, Url, Id},#{table := Tid, update_count := Update, trycoun
 			lager:debug("Code: ~p, Load registry to file: ~p~n",[Id,File]),
 			case blacklist:load_xml(File) of 
 				{ok, List} ->
-					lists:map(fun([{url, U}, {decision, _D}, {domain, _Dom}, {ip, IPs}] = E) -> 
+					lists:map(fun([{url, U}, {decision, _D}, {org, _Org}, {date, _Date}, {domain, _Dom}, {ip, IPs}] = E) -> 
 									ets:insert(Tid, {erlang:phash2(U ++ IPs), E})
 							end, List);
 				{error, E} -> 

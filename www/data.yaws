@@ -1,6 +1,6 @@
 <erl>
 	out(Arg) ->
 		Params = yaws_api:parse_query(Arg),
-		Json = registry_web_tool:act(proplists:get_value("act", Params, "undefined"), Arg),
+		Json = registry_web_tool:act(list_to_atom(proplists:get_value("act", Params, "undefined")), Params),
 	{content, "application/json; charset=utf-8", Json}.
 </erl>

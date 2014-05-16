@@ -92,9 +92,8 @@ parse_xml(D) ->
 	PList = [ [ case El1#xmlElement.name of
 					decision ->
 						Dl = [ extract(A) || A <- El1#xmlElement.attributes ],
-						[{decision, "Решение: " ++ proplists:get_value(number, Dl) ++ ", от: " ++ 
-						  proplists:get_value(date, Dl) ++ 
-						  ". Организация: " ++ proplists:get_value(org, Dl)}];
+						[{decision, proplists:get_value(number, Dl)}, 
+						 {org, proplists:get_value(org, Dl)}, {date, proplists:get_value(date, Dl)}];
 					_ ->
 						[ extract(A) || A <- El1#xmlElement.content ]
 				end
@@ -104,10 +103,14 @@ parse_xml(D) ->
 					case proplists:get_all_values(url, E)  of
 						[Val] when is_list(Val) -> Acc ++ [[{url, proplists:get_value(url, E)},
 									 				 {decision, proplists:get_value(decision, E)},
+									 				 {org, proplists:get_value(org, E)},
+									 				 {date, proplists:get_value(date, E)},
 						                             {domain, proplists:get_value(domain, E)},
 						                             {ip, string:join(proplists:get_all_values(ip, E) , " ")}]];
 						Val when is_list(Val) ->  FList = [ [{url, El},
 									 {decision, proplists:get_value(decision, E)},
+									 {org, proplists:get_value(org, E)},
+									 {date, proplists:get_value(date, E)},
 						             {domain, proplists:get_value(domain, E)},
 						             {ip, string:join(proplists:get_all_values(ip, E) , " ")}] || El <- Val],
 						             lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
