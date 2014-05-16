@@ -33,13 +33,13 @@ init([Xml, Sign]) ->
 	Tref = timer:apply_after(100, ?MODULE, send_req, []), 
     {ok, #{xml => Xml, sign => Sign, table => Tid, lastDumpDate => 0, codestring => "", 
     	   update_count => 0, trycount => 1, timer => Tref, 
-    	   last_error => "", fin_state => send_req, trace => Trace}}.
+    	   last_error => "", fin_state => send_req, trace => Trace, lastArch => ""}}.
 
-handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, fin_state := FState, last_error := LastErr, trycount := Try } = State) ->
+handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, fin_state := FState, last_error := LastErr, trycount := Try, lastArch := Arch } = State) ->
 	R = [
 			{"XMLRequest", Xml}, {"XMLRequestSign", Sign},
 			{"lastDumpDate",ts2date(LastDump)}, {"NextAction", atom_to_list(FState)},
-			{"UpdateCounter", Update}, {"LastError", LastErr},
+			{"UpdateCounter", Update}, {"lastArchive", Arch}, {"LastError", LastErr},
 			{"CodeString", Code}, {"LastTryCount", Try}
 		],
 	{reply, R, State};
@@ -93,7 +93,7 @@ handle_cast({send_req, Url}, #{xml := Xml, sign := Sign, lastDumpDate := LastDum
 handle_cast({get_reply, Url, Id},#{table := Tid, update_count := Update, trycount := Try, timer := Tref } = State) ->
 	timer:cancel(Tref), 
 	case blacklist:get_reply(Url, Id) of
-		{ok, File} ->
+		{ok, File, Arch} ->
 			lager:debug("Code: ~p, Load registry to file: ~p~n",[Id,File]),
 			case blacklist:load_xml(File) of 
 				{ok, List} ->
@@ -104,7 +104,7 @@ handle_cast({get_reply, Url, Id},#{table := Tid, update_count := Update, trycoun
 					lager:error("Parse XML error: ~p~n",[term_to_binary(E)])
 			end,
 			Timer = timer:apply_after(1200000, ?MODULE, send_req, []),
-			{noreply, State#{fin_state := send_req, update_count := Update + 1, trycount := 1, timer := Timer, codestring := ""}};
+			{noreply, State#{fin_state := send_req, update_count := Update + 1, trycount := 1, timer := Timer, codestring := "", lastArch := Arch}};
 		{error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}} when Try > 3 ->
 			lager:debug("Reply load error: ~ts~n",[unicode:characters_to_list(list_to_binary(Error))]),
 			Timer = timer:apply_after(1200000, ?MODULE, send_req, []), 

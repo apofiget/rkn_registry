@@ -55,7 +55,7 @@ send_req(Url, Rf, Sf) ->
 		E -> {error, E}
 	end.	
 
-%% @spec get_reply(Id :: list()) -> {ok, XMLFileName} | {error, Reason}
+%% @spec get_reply(Id :: list()) -> {ok, XMLFileName, ArchiveFileName} | {error, Reason}
 %% @doc Fetch reply from register service, store archive and extract XML file.
 %% @end
 get_reply(Url,Id) ->
@@ -65,7 +65,7 @@ get_reply(Url,Id) ->
 			[{'p:getResultResponse',_,true,_,Reply}]} -> Data = base64:decode(Reply),
 					   ok = file:write_file(File, Data),
 					   {ok, [XML]} = zip:extract(File,[{cwd,"priv"},{file_list,["dump.xml"]}]),
-					   {ok, XML};
+					   {ok, XML, File};
 		E -> {error, E}
 	end.
 

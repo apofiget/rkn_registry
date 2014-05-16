@@ -12,13 +12,13 @@ act(Act, _Args) -> handle_act(list_to_atom(Act)).
 %%% Internals
 handle_act(list) ->
 	case registry:list() of
-		[] -> prep_data([]);
+		[] -> prep_error("No data");
 		List -> prep_data([json2:obj_from_list(El) || El <- List ])
 	end;
 
 handle_act(domains) ->
 	case registry:domains() of
-		[] -> prep_data([]);
+		[] -> prep_error("No data");
 		List -> prep_data([json2:obj_from_list([{domain, El}]) || El <- List ])
 	end;
 
