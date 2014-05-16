@@ -39,7 +39,7 @@ handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, las
 	R = [
 			{"XMLRequest", Xml}, {"XMLRequestSign", Sign},
 			{"lastDumpDate",ts2date(LastDump)}, {"NextAction", atom_to_list(FState)},
-			{"UpdateCounter", Update}, {"lastArchive", Arch}, {"LastError", LastErr},
+			{"UpdateCounter", Update}, {"lastArchive", filename:basename(Arch) }, {"LastError", LastErr},
 			{"CodeString", Code}, {"LastTryCount", Try}
 		],
 	{reply, R, State};
