@@ -4,6 +4,7 @@
 			{trace, "priv/logs/updates.log"},
 			{doc_root, file:get_cwd()},
 			{hostname, "localhost"},
+			{listen_on, "127.0.0.1"},
 			{port, 8888}
 		]).
 

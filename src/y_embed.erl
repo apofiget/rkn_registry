@@ -23,7 +23,7 @@ run() ->
          {access_log, true},
 		 {dir_listings, false},
 		 {servername, get_option(hostname)},
-		 {listen, {0, 0, 0, 0}}, 
+		 {listen, proplists:get_value(ok, [inet:parse_address(get_option(listen_on))], {0,0,0,0})},
          {docroot, Docroot}],
     {ok, SCList, GC, ChildSpecs} =
 	yaws_api:embedded_start_conf(Docroot, SconfList, GconfList, Id),
