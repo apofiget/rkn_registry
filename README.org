@@ -10,6 +10,7 @@
 **** doc_root - absolute path to application root dir
 **** port - port web server listen on
 **** listen_on - IPv4 address web server listen on
+**** hostname - web server virtual host hostname
 *** Start as standalone process.
    Load data from Russian government registry for site blocking.
    Need to have XML request and sign files.
