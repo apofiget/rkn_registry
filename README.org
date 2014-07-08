@@ -44,5 +44,5 @@
    #+BEGIN_EXAMPLE Erlang
    application:start(rkn_registry).
    #+END_EXAMPLE
-   And then browse http://localhost:<port_number>/?act=<ACTION>, where
+   And then browse http://localhost:<port_number>/data.yaws?act=<ACTION>, where
    ACTION = [list | status | filter = [ip | domain | org | date | decision]]

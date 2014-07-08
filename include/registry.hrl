@@ -5,7 +5,11 @@
 			{doc_root, file:get_cwd()},
 			{hostname, "localhost"},
 			{listen_on, "127.0.0.1"},
-			{port, 8888}
+			{port, 8888},
+			{dump_csv, true},
+			{csv_file, "priv/dump.csv"},
+    	{csv_separator, ";"},
+    	{csv_fields, [decision,url,domain,ip]}
 		]).
 
 -define(REG_SRV_URL,"http://vigruzki.rkn.gov.ru/services/OperatorRequest/?wsdl").

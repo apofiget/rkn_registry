@@ -97,6 +97,17 @@ handle_cast({get_reply, Url, Id},#{table := Tid, update_count := Update, trycoun
 			lager:debug("Code: ~p, Load registry to file: ~p~n",[Id,File]),
 			case blacklist:load_xml(File) of 
 				{ok, List} ->
+					IsDump = get_option(dump_csv),
+					if IsDump -> 
+						DFile = get_option(csv_file),
+						Separator = get_option(csv_separator),
+						FList = get_option(csv_fields),
+						case blacklist:export_to_csv(DFile, List, Separator, FList) of
+							ok -> lager:debug("Dump registry to CSV file: ~p~n",[get_option(csv_file)]);
+							{error, R} -> lager:debug("Error ~p while dump registry to CSV file: ~p~n",[get_option(csv_file), R])
+						end;
+						true -> ok
+					end,
 					lists:map(fun([{url, U}, {decision, _D}, {org, _Org}, {date, _Date}, {domain, _Dom}, {ip, IPs}] = E) -> 
 									ets:insert(Tid, {erlang:phash2(U ++ IPs), E})
 							end, List);
