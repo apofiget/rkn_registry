@@ -31,4 +31,4 @@ handle_act(filter, Crt) ->
 	end.
 
 prep_data(Data) -> json2:encode(json2:obj_from_list([{"status", "ok"}, {"data",  Data}])).
-prep_error(Msg) -> json2:encode(json2:obj_from_list([{"status", "error"}, {"error",  Msg}])).
+prep_error(Msg) -> json2:encode(json2:obj_from_list([{"status", "error"}, {"error",  json2:obj_from_list(Msg)}])).

@@ -79,14 +79,14 @@ handle_cast({send_req, Url}, #{xml := Xml, sign := Sign, lastDumpDate := LastDum
 					{error, E} ->  
 						lager:debug("Not success reply. Try later. Reply: ~p~n",[E]),
 						Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, []),
-						{noreply, State#{trycount := Try + 1, time := Timer, last_error := E}}
+						{noreply, State#{trycount := Try + 1, trycount := 0, time := Timer, last_error := E}}
 				end;
 		{ok, _Last, _LastUrg} -> 
 						lager:debug("Nothing to update"),
 						Timer = timer:apply_after(1200000, ?MODULE, send_req, []),
 						{noreply, State#{timer := Timer}};
 		{error,E} -> lager:debug("Unexpected reply: ~p~n",[E]),
-			   Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, []),
+			   Timer = timer:apply_after(Try * 30000, ?MODULE, send_req, []),
 			   {noreply, State#{trycount := Try + 1, timer := Timer, last_error := E}}
 	end;
 
@@ -116,7 +116,7 @@ handle_cast({get_reply, Url, Id},#{table := Tid, update_count := Update, trycoun
 			end,
 			Timer = timer:apply_after(1200000, ?MODULE, send_req, []),
 			{noreply, State#{fin_state := send_req, update_count := Update + 1, trycount := 1, timer := Timer, codestring := "", lastArch := Arch}};
-		{error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}} when Try > 3 ->
+		{error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}} when Try > 5 ->
 			lager:debug("Reply load error: ~ts~n",[unicode:characters_to_list(list_to_binary(Error))]),
 			Timer = timer:apply_after(1200000, ?MODULE, send_req, []), 
 			{noreply, State#{fin_state := send_req, trycount := 1, timer := Timer, codestring := "", last_error := list_to_binary(Error)}};

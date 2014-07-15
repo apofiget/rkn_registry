@@ -49,10 +49,11 @@ jnx_del_route(F, L) -> jnx_route("delete", F, L).
 send_req(Url, Rf, Sf) ->
 	{ok, Rfl} = file:read_file(Rf), 
 	{ok, Sfl} = file:read_file(Sf), 
-	case yaws_soap_lib:call(Url, "sendRequest", [base64:encode(Rfl),base64:encode(Sfl)]) of
+	try yaws_soap_lib:call(Url, "sendRequest", [base64:encode(Rfl),base64:encode(Sfl)]) of
 		{ok,_,
 			[{'p:sendRequestResponse',_,true,_,Id}]} -> {ok, Id};
 		E -> {error, E}
+	catch _:X -> {error, X}
 	end.	
 
 %% @spec get_reply(Id :: list()) -> {ok, XMLFileName, ArchiveFileName} | {error, Reason}
@@ -60,24 +61,26 @@ send_req(Url, Rf, Sf) ->
 %% @end
 get_reply(Url,Id) ->
 	File = "priv/arch/" ++ arch_name(),
-	case yaws_soap_lib:call(Url, "getResult",[Id]) of
+	try yaws_soap_lib:call(Url, "getResult",[Id]) of
 		{ok,_,
 			[{'p:getResultResponse',_,true,_,Reply}]} -> Data = base64:decode(Reply),
 					   ok = file:write_file(File, Data),
 					   {ok, [XML]} = zip:extract(File,[{cwd,"priv"},{file_list,["dump.xml"]}]),
 					   {ok, XML, File};
 		E -> {error, E}
+	catch _:X -> {error, X}
 	end.
 
 %% @spec last_update() -> {ok, TimeStamp, UrgentTimeStamp} | {error, error}
 %% @doc Get register last update timestamp.
 %% @end
 last_update(Url) ->
-	case yaws_soap_lib:call(Url, "getLastDumpDateEx",[]) of
+	try yaws_soap_lib:call(Url, "getLastDumpDateEx",[]) of
 		{ok,_,
 			[{'p:getLastDumpDateExResponse',_,LastDumpMs,LastDumpUrgMs}]} ->
 				{ok, list_to_integer(LastDumpMs) div 1000, list_to_integer(LastDumpUrgMs) div 1000};
 		E -> {error, E}
+	catch _:X -> {error, X}
 	end.
 
 %% @hidden
