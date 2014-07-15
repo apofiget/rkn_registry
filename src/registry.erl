@@ -75,11 +75,11 @@ handle_cast({send_req, Url}, #{xml := Xml, sign := Sign, lastDumpDate := LastDum
 					{ok, Code} ->
 						lager:debug("Code: ~p Wait for registry.~n",[Code]),
 						Timer = timer:apply_after(180000, ?MODULE, get_reply, [Code]), 
-						{noreply, State#{lastDumpDate := unix_ts(), codestring := Code, fin_state := get_reply, timer := Timer}};
+						{noreply, State#{lastDumpDate := unix_ts(), rycount := 0, codestring := Code, fin_state := get_reply, timer := Timer}};
 					{error, E} ->  
 						lager:debug("Not success reply. Try later. Reply: ~p~n",[E]),
 						Timer = timer:apply_after(Try * 5000, ?MODULE, send_req, []),
-						{noreply, State#{trycount := Try + 1, trycount := 0, time := Timer, last_error := E}}
+						{noreply, State#{trycount := Try + 1, time := Timer, last_error := E}}
 				end;
 		{ok, _Last, _LastUrg} -> 
 						lager:debug("Nothing to update"),
