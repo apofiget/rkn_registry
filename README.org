@@ -46,6 +46,8 @@
    Server store downloaded archive to priv/arch and last XML dump to priv/dump.xml
 *** Start as erlang application
    #+BEGIN_EXAMPLE Shell
+   cd application/directory
+   make
     ./start.sh
    #+END_EXAMPLE
    And then browse http://localhost:<port_number>/data.yaws?act=<ACTION>, where
