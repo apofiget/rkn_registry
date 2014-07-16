@@ -1,6 +1,10 @@
 * Some stuff for my work.
 
 ** Blacklist
+    Requirement:
+    * Rebar
+    * Erlang/OTP >= 17.0
+
 *** Configuration parameters
    All params in app.config
    You need to change only:
@@ -15,7 +19,8 @@
     * csv_file - relative path to CSV dump
     * csv_separator - CSV field separatot, for example ";"
     * csv_fields - field names list, like [decision,url,domain,ip]
-*** Start as standalone process.
+
+*** Start as standalone process
    Load data from Russian government registry for site blocking.
    Need to have XML request and sign files.
    Server start as:
@@ -44,7 +49,8 @@
      {"LastTryCount",1}]
    #+END_EXAMPLE
    Server store downloaded archive to priv/arch and last XML dump to priv/dump.xml
-*** Start as erlang application
+
+*** Start as erlang application from shell
    #+BEGIN_EXAMPLE Shell
    cd application/directory
    make
