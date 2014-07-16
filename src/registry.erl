@@ -36,9 +36,9 @@ start(Xml, Sign) ->
 
 init([Xml, Sign]) ->
 	{ok, Trace} = lager:trace_file(get_option(trace), [{module, ?MODULE}], debug),
-	[application:ensure_started(App) || App <- [lager,inets]],
 	Tid = ets:new(?MODULE, []),
-	Tref = timer:apply_after(100, ?MODULE, get_last_update, []), 
+	Tref = timer:apply_after(100, ?MODULE, get_last_update, []),
+	io:format("~n***~p start...~p~n", [?MODULE, self()]),
     {ok, #{xml => Xml, sign => Sign, table => Tid, lastDumpDate => 0, codestring => "", 
     	   update_count => 0, trycount => 1, timer => Tref, 
     	   last_error => "", fin_state => send_req, trace => Trace, lastArch => ""}}.

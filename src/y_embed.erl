@@ -29,4 +29,5 @@ run() ->
 	yaws_api:embedded_start_conf(Docroot, SconfList, GconfList, Id),
     [supervisor:start_child(y_embed_sup, Ch) || Ch <- ChildSpecs],
     yaws_api:setconf(GC, SCList),
+    io:format("~n***~p start...~w~n", [?MODULE, self()]),
     {ok, self()}.

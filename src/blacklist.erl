@@ -61,6 +61,8 @@ send_req(Url, Rf, Sf) ->
 %% @end
 get_reply(Url,Id) ->
 	File = "priv/arch/" ++ arch_name(),
+	%%% use try because yaws_soap_lib have error with
+	%%% pattern-matching when HTTP error while process RPC
 	try yaws_soap_lib:call(Url, "getResult",[Id]) of
 		{ok,_,
 			[{'p:getResultResponse',_,true,_,Reply}]} -> Data = base64:decode(Reply),
