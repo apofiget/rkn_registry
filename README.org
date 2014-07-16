@@ -4,13 +4,17 @@
 *** Configuration parameters
    All params in app.config
    You need to change only:
-**** xml - relative path to XML request file
-**** sign - relative path to sign file
-**** trace - relative path to trace log file
-**** doc_root - absolute path to application root dir
-**** port - port web server listen on
-**** listen_on - IPv4 address web server listen on
-**** hostname - web server virtual host hostname
+    * xml - relative path to XML request file
+    * sign - relative path to sign file
+    * trace - relative path to trace log file
+    * doc_root - absolute path to application root dir
+    * port - port web server listen on
+    * listen_on - IPv4 address web server listen on
+    * hostname - web server virtual host hostname
+    * dump_csv - true or false
+    * csv_file - relative path to CSV dump
+    * csv_separator - CSV field separatot, for example ";"
+    * csv_fields - field names list, like [decision,url,domain,ip]
 *** Start as standalone process.
    Load data from Russian government registry for site blocking.
    Need to have XML request and sign files.
