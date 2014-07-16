@@ -1,0 +1,27 @@
+<erl>
+
+-include("include/registry.hrl").
+
+	out(Arg) ->
+	Params = yaws_api:parse_query(Arg),
+	{Mime, Content} = case list_to_atom(proplists:get_value("type", Params, "undefined")) of
+		zip ->
+			Content = case proplists:get_value("lastArchive", registry:status()) of
+				"" -> [];
+				F -> read_cont(F)
+			end, {"application/zip", Content};
+		_ -> 
+			Content = case get_option(dump_csv) of
+				true -> read_cont(get_option(csv_file));
+				_ -> []
+			end, {"text/csv", Content}
+	end, 
+	{content, Mime, Content}.
+
+
+read_cont(F) -> 
+	case file:read_file(F) of
+		{ok, Binary} -> binary_to_list(Binary);
+		_-> [] 
+	end. 
+</erl>

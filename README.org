@@ -45,4 +45,4 @@
    application:start(rkn_registry).
    #+END_EXAMPLE
    And then browse http://localhost:<port_number>/data.yaws?act=<ACTION>, where
-   ACTION = [list | status | filter = [ip | domain | org | date | decision]]
+   ACTION = [list | status | filter = [ip | domain | org | date | decision] | dump_last_zip | dump_last_csv]
