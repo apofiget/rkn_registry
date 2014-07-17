@@ -4,6 +4,7 @@
 		case list_to_atom(proplists:get_value("act", Params, "undefined")) of
 			dump_last_csv -> {redirect_local, "/last_dump.yaws?type=csv"};
 			dump_last_zip -> {redirect_local, "/last_dump.yaws?type=zip"};
+			dump_last_xml -> {redirect_local, "/last_dump.yaws?type=xml"};
 			Act -> {content, "application/json; charset=utf-8", registry_web_tool:act(Act, Params)}
 		end.
 </erl>

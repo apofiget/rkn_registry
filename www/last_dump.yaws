@@ -6,15 +6,16 @@
 	Params = yaws_api:parse_query(Arg),
 	{Mime, Content} = case list_to_atom(proplists:get_value("type", Params, "undefined")) of
 		zip ->
-			Content = case proplists:get_value("lastArchive", registry:status()) of
+			Cont = case proplists:get_value("lastArchive", registry:status()) of
 				"" -> [];
 				F -> read_cont(F)
-			end, {"application/zip", Content};
+			end, {"application/zip", Cont};
+		xml -> {"application/xml", read_cont("priv/dump.xml")};
 		_ -> 
-			Content = case get_option(dump_csv) of
+			Cont = case get_option(dump_csv) of
 				true -> read_cont(get_option(csv_file));
 				_ -> []
-			end, {"text/csv", Content}
+			end, {"text/csv", Cont}
 	end, 
 	{content, Mime, Content}.
 

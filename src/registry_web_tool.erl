@@ -16,19 +16,18 @@ act(Act, Args) ->
 %%% Internals
 handle_act(list) ->
 	case registry:list() of
-		[] -> prep_error("No data");
-		List -> prep_data([json2:obj_from_list(El) || El <- List ])
+		[] -> prep("error","No data");
+		List -> prep("ok",[json2:obj_from_list(El) || El <- List ])
 	end;
 
-handle_act(status) -> prep_data(json2:obj_from_list(registry:status()));
+handle_act(status) -> prep("ok",json2:obj_from_list(registry:status()));
 
-handle_act(_) -> prep_error("Unknown function").
+handle_act(_) -> prep("error","Unknown function").
 
 handle_act(filter, Crt) ->
 	case registry:filter(Crt) of
-		[] -> prep_error("No data");
-		List -> prep_data([List])
+		[] -> prep("error","No data");
+		List -> prep("ok",[List])
 	end.
 
-prep_data(Data) -> json2:encode(json2:obj_from_list([{"status", "ok"}, {"data",  Data}])).
-prep_error(Msg) -> json2:encode(json2:obj_from_list([{"status", "error"}, {"error",  json2:obj_from_list(Msg)}])).
+prep(Status, Data) -> json2:encode(json2:obj_from_list([{"status", Status}, {"data",  Data}])).
