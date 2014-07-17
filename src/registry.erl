@@ -80,7 +80,7 @@ handle_cast({get_last_update, Url}, #{timer := Tref } = State) ->
 
 handle_cast({set_last_update, {error, E}}, #{trycount := Try} = State) ->
 	lager:debug("Unexpected reply: ~p~n",[E]),
-  Timer = timer:apply_after(Try * 30000, ?MODULE, get_last_update, []),
+  Timer = timer:apply_after(Try * 30000, ?MODULE, get_last_update, [get_option(get_last_update_period)]),
   {noreply, State#{fin_state := get_last_update, trycount := Try + 1, timer := Timer, last_error := E}};
 
 handle_cast({set_last_update, {Last, LastUrg}}, #{xml := Xml, sign := Sign, lastDumpDate := LastDump, timer := Tref } = State) ->
@@ -92,7 +92,7 @@ handle_cast({set_last_update, {Last, LastUrg}}, #{xml := Xml, sign := Sign, last
 			{noreply, State#{fin_state := get_codestring}};
 		true -> 
 			lager:debug("Nothing to update"),
-			Timer = timer:apply_after(1200000, ?MODULE, get_last_update, []),
+			Timer = timer:apply_after(1200000, ?MODULE, get_last_update, [get_option(get_last_update_period)]),
 			{noreply, State#{timer := Timer, fin_state := get_last_update}}
 	end;
 
@@ -102,7 +102,7 @@ handle_cast({get_codestring, Url, Xml, Sign}, State) ->
 
 handle_cast({set_codestring,{error, E}}, #{trycount := 10} = State) -> 
 	lager:debug("GetCodestring. MaxTry reached. Last reply: ~p~n",[E]),
-	Timer = timer:apply_after(1000, ?MODULE, get_last_update, []),
+	Timer = timer:apply_after(1000, ?MODULE, get_last_update, [get_option(get_last_update_period)]),
 	{noreply, State#{trycount := 1, timer := Timer, last_error := E, fin_state := get_last_update}};
 
 handle_cast({set_codestring,{error, E}}, #{xml := Xml, sign := Sign, trycount := Try} = State) -> 
@@ -121,7 +121,7 @@ handle_cast({get_reply, Url, Id}, State) ->
 
 handle_cast({process_reply, {error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}}},#{trycount := 10, codestring := Code} = State) ->
 	lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~p~n",[Code, unicode:characters_to_list(list_to_binary(Error))]),
-	Timer = timer:apply_after(1000, ?MODULE, get_last_update, []),
+	Timer = timer:apply_after(1000, ?MODULE, get_last_update, [get_option(get_last_update_period)]),
 	{noreply, State#{fin_state := get_last_update, trycount := 1, codestring := "", timer := Timer, last_error := unicode:characters_to_list(list_to_binary(Error))}};
 
 handle_cast({process_reply, {error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}}},#{trycount := Try, codestring := Code} = State) ->
@@ -131,7 +131,7 @@ handle_cast({process_reply, {error,{ok, _,[{'p:getResultResponse',[], _, Error, 
 
 handle_cast({process_reply, {error,E}},#{trycount := Try, codestring := Code} = State) ->
 	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Unknown error: ~p~n",[Code, Try, term_to_binary(E)]),
-	Timer = timer:apply_after(1000, ?MODULE, get_last_update, []),
+	Timer = timer:apply_after(1000, ?MODULE, get_last_update, [get_option(get_last_update_period)]),
 	{noreply, State#{trycount := 1, codestring := "", timer := Timer, last_error := term_to_binary(E), fin_state := get_last_update}};
 
 handle_cast({process_reply, {ok, File, Arch}},#{codestring := Code, table := Tid, update_count := Update} = State) ->
@@ -155,7 +155,7 @@ handle_cast({process_reply, {ok, File, Arch}},#{codestring := Code, table := Tid
 		{error, E} -> 
 			lager:error("Parse XML error: ~p~n",[term_to_binary(E)])
 	end,
-	Timer = timer:apply_after(1200000, ?MODULE, get_last_update, []),
+	Timer = timer:apply_after(1200000, ?MODULE, get_last_update, [get_option(get_last_update_period)]),
 	{noreply, State#{fin_state := get_last_update, update_count := Update + 1, trycount := 1, timer := Timer, codestring := "", lastArch := Arch}};
 
 handle_cast(_Msg, State) ->
@@ -172,6 +172,9 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%% Internals
+
+get_last_update(Time) when is_integer(Time) -> 
+	timer:apply_after(Time*1000, ?MODULE, get_last_update, []);
 
 get_last_update(Url) ->
 	case blacklist:last_update(Url) of

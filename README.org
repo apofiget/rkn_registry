@@ -8,6 +8,7 @@
 *** Configuration parameters
    All params in app.config
    You need to change only:
+    * get_last_update_period - seconds after try to get registry update time
     * xml - relative path to XML request file
     * sign - relative path to sign file
     * trace - relative path to trace log file
