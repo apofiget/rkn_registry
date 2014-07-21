@@ -5,7 +5,7 @@
 			{doc_root, file:get_cwd()},
 			{hostname, "localhost"},
 			{listen_on, "127.0.0.1"},
-			{get_last_update_period, 300},
+			{get_last_update_period, 600},
 			{port, 8888},
 			{dump_csv, true},
 			{csv_file, "priv/dump.csv"},
