@@ -58,4 +58,5 @@
     ./start.sh
    #+END_EXAMPLE
    And then browse http://localhost:<port_number>/data.yaws?act=<ACTION>, where
-   ACTION = [list | status | filter = [ip | domain | org | date | decision] | dump_last_zip | dump_last_csv | dump_last_xml]
+   ACTION = [list | status | filter&match = [ip | domain | org | date | decision] | dump_last_zip | dump_last_csv | dump_last_xml]
+

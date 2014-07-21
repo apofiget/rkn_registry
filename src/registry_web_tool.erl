@@ -27,7 +27,7 @@ handle_act(_) -> prep("error","Unknown function").
 handle_act(filter, Crt) ->
 	case registry:filter(Crt) of
 		[] -> prep("error","No data");
-		List -> prep("ok",[List])
+		List -> prep("ok",[json2:encode(El) || El <- List ])
 	end.
 
 prep(Status, Data) -> json2:encode(json2:obj_from_list([{"status", Status}, {"data",  Data}])).
