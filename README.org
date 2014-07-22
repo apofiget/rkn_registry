@@ -40,7 +40,7 @@
    make
     ./dev_start.sh
    #+END_EXAMPLE
-   А затем http://localhost:<port_number>/?act=<ACTION>, где
+   А затем http://localhost:<port_number>/data.yaws?act=<ACTION>, где
    ACTION =
 	* list - дамп в формате JSON
 	* status - статус сервера в формате JSON

@@ -4,9 +4,9 @@
   {vsn, "0.5"},
   {registered, [registry]},
   {modules,[
-	blacklist,
-	check_url,
-	registry
+	 blacklist,
+	 check_url,
+	 registry
   ]},
   {applications, [
                   kernel,
