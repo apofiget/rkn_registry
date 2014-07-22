@@ -1,6 +1,5 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -sname snmpmon_kill
 
 main([String]) ->
     {ok, Host} = inet:gethostname(),
@@ -26,4 +25,4 @@ stop(Node) ->
     rpc:call(Node, init, stop, [], 2500).
 
 usage() ->
-    io:format("Unknown command~nUsage: snmp_mon_api.sh {stop|status}~n").
+    io:format("~nUsage: ./api.sh {stop|status}~n").
