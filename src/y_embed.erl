@@ -9,7 +9,7 @@ start() -> {ok, spawn(?MODULE, run, [])}.
 
 run() ->
     Id = "yaws_emb",
-    Dir = get_option(doc_root),
+    Dir = tools:get_option(doc_root),
     GconfList = 
         [{id, Id},
         {server_signature, "Yaws"},
@@ -19,11 +19,11 @@ run() ->
 	    {ebin_dir, [Dir ++ "/ebin"]}],
     Docroot = Dir ++ "/www",
     SconfList = 
-        [{port, get_option(port)}, 
+        [{port, tools:get_option(port)}, 
          {access_log, true},
 		 {dir_listings, false},
-		 {servername, get_option(hostname)},
-		 {listen, proplists:get_value(ok, [inet:parse_address(get_option(listen_on))], {0,0,0,0})},
+		 {servername, tools:get_option(hostname)},
+		 {listen, proplists:get_value(ok, [inet:parse_address(tools:get_option(listen_on))], {0,0,0,0})},
          {docroot, Docroot}],
     {ok, SCList, GC, ChildSpecs} =
 	yaws_api:embedded_start_conf(Docroot, SconfList, GconfList, Id),

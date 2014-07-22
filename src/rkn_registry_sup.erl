@@ -16,8 +16,8 @@ init([y_embed]) ->
     {ok, {{one_for_all, 0, 1}, [YBed]}};
 
 init([Mod]) ->
-    XMLReq = get_option(xml),
-    SignXMLReq = get_option(sign),
+    XMLReq = tools:get_option(xml),
+    SignXMLReq = tools:get_option(sign),
     RestartStrategy = one_for_one,
     MaxRestarts = 3,
     MaxSecondsBetweenRestarts = 30,

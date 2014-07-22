@@ -15,10 +15,6 @@
 
 -include("include/registry.hrl").
 
--define(MONTH,[{1,"January"}, {2,"February"}, {3,"March"}, {4,"April"}, 
-			   {5,"May"}, {6,"June"}, {7,"Jule"}, {8,"August"}, {9,"September"}, 
-			   {10,"October"}, {11,"November"}, {12,"December"}]).
-
 get_last_update() -> gen_server:cast(?MODULE, {get_last_update, ?REG_SRV_URL}).
 set_last_update(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {set_last_update, Param}).
 get_codestring(Xml, Sign) -> gen_server:cast(?MODULE, {get_codestring, ?REG_SRV_URL, Xml, Sign}).
@@ -35,7 +31,7 @@ start(Xml, Sign) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Xml, Sign], []).
 
 init([Xml, Sign]) ->
-	{ok, Trace} = lager:trace_file(get_option(trace), [{module, ?MODULE}], debug),
+	{ok, Trace} = lager:trace_file(tools:get_option(trace), [{module, ?MODULE}], debug),
 	Tid = ets:new(?MODULE, []),
 	{ok, Tref} = timer:apply_after(100, ?MODULE, get_last_update, []),
 	io:format("~n***~p start...~p~n", [?MODULE, self()]),
@@ -45,7 +41,7 @@ init([Xml, Sign]) ->
 handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, fin_state := FState, last_error := LastErr, trycount := Try, lastArch := Arch } = State) ->
 	R = [
 			{"XMLRequest", Xml}, {"XMLRequestSign", Sign},
-			{"lastDumpDate",ts2date(LastDump)}, {"NextAction", atom_to_list(FState)},
+			{"lastDumpDate",tools:ts2date(LastDump)}, {"NextAction", atom_to_list(FState)},
 			{"UpdateCounter", Update}, {"lastArchive", Arch}, {"LastError", LastErr},
 			{"CodeString", Code}, {"LastTryCount", Try}
 		],
@@ -78,18 +74,18 @@ handle_cast({get_last_update, Url}, State) ->
 
 handle_cast({set_last_update, {error, E}}, #{trycount := Try} = State) ->
 	lager:debug("Unexpected reply: ~p~n",[E]),
-  {ok, Timer} = timer:apply_after(Try * 30000, ?MODULE, get_last_update, [get_option(get_last_update_period)]),
+  {ok, Timer} = timer:apply_after(Try * 30000, ?MODULE, get_last_update, [tools:get_option(get_last_update_period)]),
   {noreply, State#{fin_state := get_last_update, trycount := Try + 1, last_error := E}};
 
 handle_cast({set_last_update, {Last, LastUrg}}, #{xml := Xml, sign := Sign, lastDumpDate := LastDump} = State) ->
-	Ts = unix_ts(),
+	Ts = tools:unix_ts(),
 	if LastDump < LastUrg; Ts - LastDump > 43200 ->
-			lager:debug("LastUpdate: ~ts, LastRegDump: ~ts, LastRegUrgDump: ~ts~n",[ts2date(LastDump),ts2date(Last),ts2date(LastUrg)]),
+			lager:debug("LastUpdate: ~ts, LastRegDump: ~ts, LastRegUrgDump: ~ts~n",[tools:ts2date(LastDump),tools:ts2date(Last),tools:ts2date(LastUrg)]),
 			get_codestring(Xml, Sign),
 			{noreply, State#{fin_state := get_codestring}};
 		true -> 
 			lager:debug("Nothing to update"),
-			get_last_update(get_option(get_last_update_period)),
+			get_last_update(tools:get_option(get_last_update_period)),
 			{noreply, State#{fin_state := get_last_update}}
 	end;
 
@@ -99,7 +95,7 @@ handle_cast({get_codestring, Url, Xml, Sign}, State) ->
 
 handle_cast({set_codestring,{error, E}}, #{trycount := 10} = State) -> 
 	lager:debug("GetCodestring. MaxTry reached. Last reply: ~p~n",[E]),
-	get_last_update(get_option(get_last_update_period)),
+	get_last_update(tools:get_option(get_last_update_period)),
 	{noreply, State#{trycount := 1, last_error := E, fin_state := get_last_update}};
 
 handle_cast({set_codestring,{error, E}}, #{xml := Xml, sign := Sign, trycount := Try} = State) -> 
@@ -110,7 +106,7 @@ handle_cast({set_codestring,{error, E}}, #{xml := Xml, sign := Sign, trycount :=
 handle_cast({set_codestring,{ok, Code}}, State) -> 
 	lager:debug("Code: ~p Wait for registry.~n",[Code]),
 	{ok, Timer} = timer:apply_after(180000, ?MODULE, get_reply, [Code]), 
-	{noreply, State#{lastDumpDate := unix_ts(), trycount := 1, codestring := Code, fin_state := get_reply}};
+	{noreply, State#{lastDumpDate := tools:unix_ts(), trycount := 1, codestring := Code, fin_state := get_reply}};
 
 handle_cast({get_reply, Url, Id}, State) ->
 	spawn_link(?MODULE, get_reply, [Url, Id]),
@@ -118,7 +114,7 @@ handle_cast({get_reply, Url, Id}, State) ->
 
 handle_cast({process_reply, {error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}}},#{trycount := 10, codestring := Code} = State) ->
 	lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~p~n",[Code, unicode:characters_to_list(list_to_binary(Error))]),
-	get_last_update(get_option(get_last_update_period)),
+	get_last_update(tools:get_option(get_last_update_period)),
 	{noreply, State#{fin_state := get_last_update, trycount := 1, codestring := "", last_error := unicode:characters_to_list(list_to_binary(Error))}};
 
 handle_cast({process_reply, {error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}}},#{trycount := Try, codestring := Code} = State) ->
@@ -128,21 +124,21 @@ handle_cast({process_reply, {error,{ok, _,[{'p:getResultResponse',[], _, Error, 
 
 handle_cast({process_reply, {error,E}},#{trycount := Try, codestring := Code} = State) ->
 	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Unknown error: ~p~n",[Code, Try, term_to_binary(E)]),
-	get_last_update(get_option(get_last_update_period)),
+	get_last_update(tools:get_option(get_last_update_period)),
 	{noreply, State#{trycount := 1, codestring := "", last_error := term_to_binary(E), fin_state := get_last_update}};
 
 handle_cast({process_reply, {ok, File, Arch}},#{codestring := Code, table := Tid, update_count := Update} = State) ->
 	lager:debug("Code: ~p, Load registry to file: ~p~n",[Code,File]),
 	case blacklist:load_xml(File) of 
 		{ok, List} ->
-			IsDump = get_option(dump_csv),
+			IsDump = tools:get_option(dump_csv),
 			if IsDump -> 
-				DFile = get_option(csv_file),
-				Separator = get_option(csv_separator),
-				FList = get_option(csv_fields),
+				DFile = tools:get_option(csv_file),
+				Separator = tools:get_option(csv_separator),
+				FList = tools:get_option(csv_fields),
 					case blacklist:export_to_csv(DFile, List, Separator, FList) of
-						ok -> lager:debug("Dump registry to CSV file: ~p~n",[get_option(csv_file)]);
-						{error, R} -> lager:debug("Error ~p while dump registry to CSV file: ~p~n",[get_option(csv_file), R])
+						ok -> lager:debug("Dump registry to CSV file: ~p~n",[tools:get_option(csv_file)]);
+						{error, R} -> lager:debug("Error ~p while dump registry to CSV file: ~p~n",[tools:get_option(csv_file), R])
 					end;
 				true -> ok
 			end,
@@ -152,7 +148,7 @@ handle_cast({process_reply, {ok, File, Arch}},#{codestring := Code, table := Tid
 		{error, E} -> 
 			lager:error("Parse XML error: ~p~n",[term_to_binary(E)])
 	end,
-	get_last_update(get_option(get_last_update_period)),
+	get_last_update(tools:get_option(get_last_update_period)),
 	{noreply, State#{fin_state := get_last_update, update_count := Update + 1, trycount := 1, codestring := "", lastArch := Arch}};
 
 handle_cast(_Msg, State) ->
@@ -186,12 +182,3 @@ get_codestring(Url, Xml, Sign) ->
 get_reply(Url, Id) ->
   Reply = blacklist:get_reply(Url, Id),
   process_reply(Reply).
-
-ts2date(Ts) ->
-    {{Y, M, D}, {H, Min, _S}} =
-		calendar:now_to_local_time({Ts div 1000000, Ts rem 1000000, 0}),
-    lists:flatten(io_lib:format('~2..0b-~3s-~4..0b, ~2..0b:~2..0b',
-				[D, proplists:get_value(M, ?MONTH), Y, H, Min])).
-unix_ts() ->
-    {Mega, Seconds, _} = erlang:now(),
-    Mega * 1000000 + Seconds.
