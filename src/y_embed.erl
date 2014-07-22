@@ -9,7 +9,11 @@ start() -> {ok, spawn(?MODULE, run, [])}.
 
 run() ->
     Id = "yaws_emb",
-    Dir = tools:get_option(doc_root),
+    Dir = case tools:get_option(doc_root) of
+            undefined -> {ok, Path} = file:get_cwd(), 
+                Path;
+            Path -> Path
+        end,
     GconfList = 
         [{id, Id},
         {server_signature, "Yaws"},

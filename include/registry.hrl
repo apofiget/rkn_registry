@@ -2,7 +2,6 @@
 			{xml, "priv/request.xml"},
 			{sign, "priv/request.bin"},
 			{trace, "priv/logs/updates.log"},
-			{doc_root, "./"},
 			{hostname, "localhost"},
 			{listen_on, "127.0.0.1"},
 			{get_last_update_period, 600},
