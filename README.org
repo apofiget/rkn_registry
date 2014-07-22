@@ -1,42 +1,60 @@
-* Some stuff for my work.
+* Blacklist
+    Необходимое ПО:
+    * Rebar (https://github.com/rebar/rebar)
+    * Erlang/OTP >= 17.0 (http://www.erlang.org/download.html)
 
-** Blacklist
-    Requirement:
-    * Rebar
-    * Erlang/OTP >= 17.0
+** параметры конфигурации
+   Для запуска приложения необходимо иметь файл запроса и файл с подписью.
+   Все переметры указываются в файле app.config
+   Параметры которые необходимо изменить:
+    * get_last_update_period - периодичность проверки актуальности реестра, в секундах
+    * xml - относительный путь до файла с XML запросом, к примеру "priv/request.xml"
+    * sign - относительный пусть до файла с подписью запроса, к примеру "priv/sign.bin"
+    * trace - относительный путь до файла с трассировкой событий
+    * doc_root - абсолютный путь до каталога с приложением
+    * port - порт , который будет слушать web сервер
+    * listen_on - IPv4 адрес который будет слушать web сервер
+    * hostname - имя виртуального хоста
+    * dump_csv - делать дамп в csv при обновлении реестра, true или false
+    * csv_file - относительный путь до файла, в который будет производиться CSV дамп
+    * csv_separator - разделитель полей для CSV, к примеру ";"
+    * csv_fields - имена полей которые будут присутствовать в дампе. Необходимо указать одно из или все поля:
+	* ip
+	* domain
+	* decision
+	* url
+     к примеру [decision,url,domain,ip]. Порядок следования полей в файле, будет таким же как порядок имен полей в конфигурации.
 
-*** Configuration parameters
-   All params in app.config
-   You need to change only:
-    * get_last_update_period - seconds after try to get registry update time
-    * xml - relative path to XML request file
-    * sign - relative path to sign file
-    * trace - relative path to trace log file
-    * doc_root - absolute path to application root dir
-    * port - port web server listen on
-    * listen_on - IPv4 address web server listen on
-    * hostname - web server virtual host hostname
-    * dump_csv - true or false
-    * csv_file - relative path to CSV dump
-    * csv_separator - CSV field separatot, for example ";"
-    * csv_fields - field names list, like [decision,url,domain,ip]
+** Запуск приложения
+   #+BEGIN_EXAMPLE Shell
+   cd application/directory
+   make
+    ./start.sh
+   #+END_EXAMPLE
+   А затем http://localhost:<port_number>/data.yaws?act=<ACTION>, где
+   ACTION = 
+	* list - дамп в формате JSON
+	* status - статус сервера в формате JSON
+	* filter&match = [ip | domain | org | date | decision] - вывод только указанного поля
+	* dump_last_zip - получение последнего скачанного архива
+	* dump_last_csv - получение последнего CSV дампа
+	* dump_last_xml - получение последнего XML файла с реестром
 
-*** Start as standalone process
-   Load data from Russian government registry for site blocking.
-   Need to have XML request and sign files.
-   Server start as:
+
+** Запуск из Erlang REPL
+   Запуск сервера:
    #+BEGIN_EXAMPLE Erlang
     registry:start(XMLRequestFile, SignFile).
    #+END_EXAMPLE
-   For example:
+   Пример:
    #+BEGIN_EXAMPLE Erlang
     registry:start("priv/request.xml", "priv/request.bin").
    #+END_EXAMPLE
-   Server status:
+   Статус сервера:
    #+BEGIN_EXAMPLE Erlang
     registry:status().
    #+END_EXAMPLE
-   Example output:
+   Пример:
    #+BEGIN_EXAMPLE Erlang
     registry:status().
 
@@ -49,14 +67,4 @@
      {"CodeString",[]},
      {"LastTryCount",1}]
    #+END_EXAMPLE
-   Server store downloaded archive to priv/arch and last XML dump to priv/dump.xml
-
-*** Start as erlang application from shell
-   #+BEGIN_EXAMPLE Shell
-   cd application/directory
-   make
-    ./start.sh
-   #+END_EXAMPLE
-   And then browse http://localhost:<port_number>/data.yaws?act=<ACTION>, where
-   ACTION = [list | status | filter&match = [ip | domain | org | date | decision] | dump_last_zip | dump_last_csv | dump_last_xml]
 
