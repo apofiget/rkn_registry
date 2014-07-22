@@ -32,7 +32,13 @@
    #+BEGIN_EXAMPLE Shell
    cd application/directory
    make
-    ./start.sh
+    ./registry.sh start
+   #+END_EXAMPLE
+   или
+   #+BEGIN_EXAMPLE Shell
+   cd application/directory
+   make
+    ./dev_start.sh
    #+END_EXAMPLE
    А затем http://localhost:<port_number>/?act=<ACTION>, где
    ACTION =
