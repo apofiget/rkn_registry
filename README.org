@@ -19,11 +19,12 @@
     * dump_csv - делать дамп в csv при обновлении реестра, true или false
     * csv_file - относительный путь до файла, в который будет производиться CSV дамп
     * csv_separator - разделитель полей для CSV, к примеру ";"
-    * csv_fields - имена полей которые будут присутствовать в дампе. Необходимо указать одно из или все поля:
-	* ip
-	* domain
-	* decision
-	* url
+    * csv_fields - имена полей которые будут присутствовать в дампе. 
+    Необходимо указать одно из или все поля:
+    	* ip
+    	* domain
+    	* decision
+    	* url
      к примеру [decision,url,domain,ip].
      Порядок следования полей в файле, будет таким же как порядок имен полей в конфигурации.
 
@@ -33,8 +34,8 @@
    make
     ./start.sh
    #+END_EXAMPLE
-   А затем http://localhost:<port_number>/data.yaws?act=<ACTION>, где
-   ACTION = 
+   А затем http://localhost:<port_number>/?act=<ACTION>, где
+   ACTION =
 	* list - дамп в формате JSON
 	* status - статус сервера в формате JSON
 	* filter&match = [ip | domain | org | date | decision] - вывод только указанного поля
