@@ -1,4 +1,5 @@
 * Blacklist
+    Получение данных реестра Роскомнадзора.
     Необходимое ПО:
     * Rebar (https://github.com/rebar/rebar)
     * Erlang/OTP >= 17.0 (http://www.erlang.org/download.html)
