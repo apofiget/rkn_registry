@@ -120,7 +120,7 @@ handle_cast({process_reply, {error,{ok, _,[{'p:getResultResponse',[], _, Error, 
 handle_cast({process_reply, {error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}}},#{trycount := Try, codestring := Code} = State) ->
 	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~tp~n",[Code, Try, unicode:characters_to_list(list_to_binary(Error))]),
 	{ok, Timer} = timer:apply_after(Try * 5000, ?MODULE, get_reply, [Code]),
-	{noreply, State#{trycount := Try + 1, codestring := "", last_error := unicode:characters_to_list(list_to_binary(Error))}};
+	{noreply, State#{trycount := Try + 1, codestring := Code, last_error := unicode:characters_to_list(list_to_binary(Error))}};
 
 handle_cast({process_reply, {error,E}},#{trycount := Try, codestring := Code} = State) ->
 	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Unknown error: ~tp~n",[Code, Try, term_to_binary(E)]),
