@@ -113,17 +113,17 @@ handle_cast({get_reply, Url, Id}, State) ->
 	{noreply, State#{fin_state := wait_for_reply}}; 
 
 handle_cast({process_reply, {error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}}},#{trycount := 10, codestring := Code} = State) ->
-	lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~p~n",[Code, unicode:characters_to_list(list_to_binary(Error))]),
+	lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~tp~n",[Code, unicode:characters_to_list(list_to_binary(Error))]),
 	get_last_update(tools:get_option(get_last_update_period)),
 	{noreply, State#{fin_state := get_last_update, trycount := 1, codestring := "", last_error := unicode:characters_to_list(list_to_binary(Error))}};
 
 handle_cast({process_reply, {error,{ok, _,[{'p:getResultResponse',[], _, Error, _}]}}},#{trycount := Try, codestring := Code} = State) ->
-	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~p~n",[Code, Try, unicode:characters_to_list(list_to_binary(Error))]),
+	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~tp~n",[Code, Try, unicode:characters_to_list(list_to_binary(Error))]),
 	{ok, Timer} = timer:apply_after(Try * 5000, ?MODULE, get_reply, [Code]),
 	{noreply, State#{trycount := Try + 1, codestring := "", last_error := unicode:characters_to_list(list_to_binary(Error))}};
 
 handle_cast({process_reply, {error,E}},#{trycount := Try, codestring := Code} = State) ->
-	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Unknown error: ~p~n",[Code, Try, term_to_binary(E)]),
+	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Unknown error: ~tp~n",[Code, Try, term_to_binary(E)]),
 	get_last_update(tools:get_option(get_last_update_period)),
 	{noreply, State#{trycount := 1, codestring := "", last_error := term_to_binary(E), fin_state := get_last_update}};
 
@@ -146,7 +146,7 @@ handle_cast({process_reply, {ok, File, Arch}},#{codestring := Code, table := Tid
 							ets:insert(Tid, {erlang:phash2(U ++ IPs), E})
 						end, List);
 		{error, E} -> 
-			lager:error("Parse XML error: ~p~n",[term_to_binary(E)])
+			lager:error("Parse XML error: ~tp~n",[term_to_binary(E)])
 	end,
 	get_last_update(tools:get_option(get_last_update_period)),
 	{noreply, State#{fin_state := get_last_update, update_count := Update + 1, trycount := 1, codestring := "", lastArch := Arch}};
