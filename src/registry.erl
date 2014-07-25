@@ -94,12 +94,12 @@ handle_cast({get_codestring, Url, Xml, Sign}, State) ->
 	{noreply, State#{fin_state := wait_codestring}};
 
 handle_cast({set_codestring,{error, E}}, #{trycount := 10} = State) -> 
-	lager:debug("GetCodestring. MaxTry reached. Last reply: ~p~n",[E]),
+	lager:debug("GetCodestring. MaxTry reached. Last reply: ~tp~n",[E]),
 	get_last_update(tools:get_option(get_last_update_period)),
 	{noreply, State#{trycount := 1, last_error := E, fin_state := get_last_update}};
 
 handle_cast({set_codestring,{error, E}}, #{xml := Xml, sign := Sign, trycount := Try} = State) -> 
-	lager:debug("Not success reply. Trycount: ~p , try later. Reply: ~p~n",[Try, E]),
+	lager:debug("Not success reply. Trycount: ~p , try later. Reply: ~tp~n",[Try, E]),
 	{ok, Timer} = timer:apply_after(Try * 5000, ?MODULE, get_codestring, [Xml, Sign]),
 	{noreply, State#{trycount := Try + 1, last_error := E}};
 
