@@ -2,11 +2,12 @@
 -module(tools).
 
 -export([get_option/1, get_reg_type/1,
-	ts2date/1, unix_ts/0, to_list/1]).
+	ts2date/1, unix_ts/0, to_list/1, get_result_comment/1]).
 
 -include("include/registry.hrl").
 
 get_reg_type(Id) -> proplists:get_value(Id, ?REG_TYPE, <<"Неизвестный тип реестра"/utf8>>).
+get_result_comment(Id) -> proplists:get_value(Id, ?RESULT_COMMENT, <<"Неизвестный тип результата"/utf8>>).
 
 get_option(Key) ->
     case application:get_env(Key) of
