@@ -2,7 +2,7 @@
 -module(tools).
 
 -export([get_option/1, get_reg_type/1,
-	ts2date/1, unix_ts/0]).
+	ts2date/1, unix_ts/0, to_list/1]).
 
 -include("include/registry.hrl").
 
@@ -22,3 +22,6 @@ ts2date(Ts) ->
 unix_ts() ->
     {Mega, Seconds, _} = erlang:now(),
     Mega * 1000000 + Seconds.
+
+to_list(Term) when is_list(Term) -> Term;
+to_list(Term) when is_tuple(Term) -> tuple_to_list(Term).
