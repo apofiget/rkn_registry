@@ -7,7 +7,7 @@
 -include("include/registry.hrl").
 
 get_reg_type(Id) -> proplists:get_value(Id, ?REG_TYPE, <<"Неизвестный тип реестра"/utf8>>).
-get_result_comment(Id) -> proplists:get_value(Id, ?RESULT_COMMENT, <<"Неизвестный тип результата"/utf8>>).
+get_result_comment(Id) -> proplists:get_value(Id, ?RESULT_COMMENT, <<"Неизвестный код ответа"/utf8>>).
 
 get_option(Key) ->
     case application:get_env(Key) of
