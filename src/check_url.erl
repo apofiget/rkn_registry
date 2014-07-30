@@ -1,6 +1,8 @@
 %% -*- coding: utf-8 -*-
 -module(check_url).
 
+-author("Andrey Andruschenko <apofiget@gmail.com>").
+
 -behaviour(gen_server).
 
 -compile([{parse_transform, lager_transform}]).

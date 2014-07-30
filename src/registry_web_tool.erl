@@ -1,5 +1,7 @@
 -module(registry_web_tool).
 
+-author("Andrey Andruschenko <apofiget@gmail.com>").
+
 -compile([{parse_transform, lager_transform}]).
 
 -export([act/2]).

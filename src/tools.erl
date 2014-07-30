@@ -1,6 +1,8 @@
 %% -*- coding: utf-8 -*-
 -module(tools).
 
+-author("Andrey Andruschenko <apofiget@gmail.com>").
+
 -export([get_option/1, get_reg_type/1,
 	ts2date/1, unix_ts/0, to_list/1, get_result_comment/1]).
 

@@ -1,11 +1,13 @@
 %% -*- coding: utf-8 -*-
 -module(blacklist).
 
+-author("Andrey Andruschenko <apofiget@gmail.com>").
+
 -include_lib("xmerl/include/xmerl.hrl").
 
 -compile([{parse_transform, lager_transform}]).
 
--export([load_xml/1, send_req/3, get_reply/2, last_update/1,
+-export([load_xml/1, send_req/3, send_req/4, get_reply/2, last_update/1,
 		 export_to_csv/4, jnx_set_route/2, jnx_del_route/2]).
 
 %% @spec load_xml(F :: list()) -> {ok, DeepList} | {error, Reason}
@@ -42,16 +44,18 @@ jnx_set_route(F, L) -> jnx_route("set", F, L).
 %% @end
 jnx_del_route(F, L) -> jnx_route("delete", F, L).
 
-%% @spec send_req(Rf :: list(), Sf :: list()) -> {ok, ReqId} | {error, Error}
+%% @spec send_req(Rf :: list(), Sf :: list(), Ver :: list()) -> {ok, ReqId} | {error, Error}
 %%		ReqId = list()
-%% @doc Send SOAP request where Rf - XML request file, Sf - request sign file.
+%% @doc Send SOAP request where Rf - XML request file, Sf - request sign file, Ver - registry version ["1.0" | "2.0"]
 %% @end
-send_req(Url, Rf, Sf) ->
+send_req(Url, Rf, Sf) -> send_req(Url, Rf, Sf, "1.0").
+
+send_req(Url, Rf, Sf, Ver) ->
 	{ok, Rfl} = file:read_file(Rf), 
 	{ok, Sfl} = file:read_file(Sf), 
-	try yaws_soap_lib:call(Url, "sendRequest", [base64:encode(Rfl),base64:encode(Sfl)]) of
-		{ok,_,
-			[{'p:sendRequestResponse',_,true,_,Id}]} -> {ok, Id};
+	try yaws_soap_lib:call(Url, "sendRequest", [base64:encode(Rfl),base64:encode(Sfl), Ver]) of
+		{ok,_,[{'p:sendRequestResponse',_,true,_,Id}]} -> {ok, Id};
+		{ok,_,[{'p:sendRequestResponse',_,false,Comment,_}]} -> {error, win_to_utf(Comment)};
 		E -> {error, E}
 	catch _:X -> {error, X}
 	end.	
@@ -65,10 +69,13 @@ get_reply(Url,Id) ->
 	%%% pattern-matching when HTTP error while process RPC
 	try yaws_soap_lib:call(Url, "getResult",[Id]) of
 		{ok,_,
-			[{'p:getResultResponse',_,true,_,Reply}]} -> Data = base64:decode(Reply),
-					   ok = file:write_file(File, Data),
-					   {ok, [XML]} = zip:extract(File,[{cwd,"priv"},{file_list,["dump.xml"]}]),
-					   {ok, XML, File};
+			[{'p:getResultResponse', _, true, _, Reply}]} -> extract_and_save_reply(Reply, File, "1.0");	%%% Only for version registry 1.0 version !!!
+		{ok, _,
+			[{'p:getResultResponse', _, true, _RComment, Reply, RCode, DocVer}]} ->
+				extract_and_save_reply(Reply, File, DocVer);
+		{ok, _,
+			[{'p:getResultResponse', _, false, _RComment, _Reply, RCode, _DocVer}]} ->
+				{error, RCode};
 		E -> {error, E}
 	catch _:X -> {error, X}
 	end.
@@ -129,6 +136,15 @@ extract(#xmlAttribute{name = org, value = Value}) -> {org, unicode:characters_to
 extract(#xmlText{parents=[{Name,_},_,_], value = Value}) -> {Name, unicode:characters_to_list(win_to_utf(Value))};
 extract(_) -> ok.
 
+%% @hidden
+extract_and_save_reply(Reply, File, Ver) ->
+	Data = base64:decode(Reply),
+	try file:write_file(File, Data) of
+		ok -> 
+			{ok, [XML]} = zip:extract(File,[{cwd,"priv"},{file_list,["dump.xml"]}]),
+			{ok, XML, File, Ver}
+	catch _:X -> {error, X}
+	end.
 
 %% @hidden
 %% CP1251 -> UTF-8

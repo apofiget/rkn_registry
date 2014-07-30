@@ -1,6 +1,8 @@
 %% -*- coding: utf-8 -*-
 -module(registry).
 
+-author("Andrey Andruschenko <apofiget@gmail.com>").
+
 -compile([{parse_transform, lager_transform}]).
 
 -behaviour(gen_server).
