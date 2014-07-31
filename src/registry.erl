@@ -75,7 +75,7 @@ handle_cast({get_last_update, Url}, State) ->
 	{noreply, State#{fin_state := wait_last_update}}; 
 
 handle_cast({set_last_update, {error, E}}, #{trycount := Try} = State) ->
-	lager:debug("Unexpected reply: ~p~n",[E]),
+	lager:debug("GetLastUpdate. Unexpected reply: ~p~n",[E]),
   {ok, _} = timer:apply_after(Try * 30000, ?MODULE, get_last_update, [tools:get_option(get_last_update_period)]),
   {noreply, State#{fin_state := get_last_update, trycount := Try + 1, last_error := E}};
 

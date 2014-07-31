@@ -27,4 +27,5 @@ unix_ts() ->
     Mega * 1000000 + Seconds.
 
 to_list(Term) when is_list(Term) -> Term;
+to_list(Term) when is_atom(Term) -> atom_to_list(Term); 
 to_list(Term) when is_tuple(Term) -> tuple_to_list(Term).
