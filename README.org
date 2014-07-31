@@ -25,11 +25,11 @@
 	* id
 	* type
 	* includeTime
-    	* ip
-    	* subnet
-    	* domain
-    	* decision
-    	* url
+	* ip
+	* subnet
+	* domain
+	* decision
+	* url
      к примеру [id,decision,url,domain,ip].
      Порядок следования полей в файле, будет таким же как порядок имен полей в конфигурации.
 
