@@ -69,7 +69,7 @@ get_reply(Url,Id) ->
 	%%% pattern-matching when HTTP error while process RPC
 	try yaws_soap_lib:call(Url, "getResult",[Id]) of
 		{ok,_,
-			[{'p:getResultResponse', _, true, _, Reply}]} -> extract_and_save_reply(Reply, File, "1.0");	%%% Only for version registry 1.0 version !!!
+			[{'p:getResultResponse', _, true, _, Reply}]} -> extract_and_save_reply(Reply, File, "1.0");	%%% Only for 1.0 version !!!
 		{ok, _,
 			[{'p:getResultResponse', _, true, _RComment, Reply, RCode, DocVer}]} ->
 				extract_and_save_reply(Reply, File, DocVer);
