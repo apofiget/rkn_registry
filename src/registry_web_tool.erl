@@ -19,7 +19,7 @@ act(Act, Args) ->
 handle_act(list) ->
 	case registry:list() of
 		[] -> prep("error","No data");
-		List -> prep("ok",[json2:obj_from_list(El) || El <- List ])
+		List -> prep("ok",[json2:obj_from_list(El) || El <- [ case E of {K,undefined} -> {K,<<"Значение не определено"/utf8>>}; _-> E end || E <- List] ])
 	end;
 
 handle_act(status) -> prep("ok",json2:obj_from_list(registry:status()));
