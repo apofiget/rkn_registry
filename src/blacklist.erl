@@ -8,7 +8,7 @@
 -compile([{parse_transform, lager_transform}]).
 
 -export([load_xml/1, send_req/3, send_req/4, get_reply/2, last_update/1,
-		 export_to_csv/4, jnx_set_route/2, jnx_del_route/2]).
+		 export_to_csv/4, jnx_set_route/2, jnx_del_route/2, parse_xml/1]).
 
 %% @spec load_xml(F :: list()) -> {ok, DeepList} | {error, Reason}
 %%		DeepList = [Proplist]
@@ -17,7 +17,7 @@
 %% @end
 load_xml(File) when is_list(File) ->
     try xmerl_scan:file(File,[{encoding, 'latin1'}]) of
-    	{Doc, _Any} -> {ok, parse_xml(Doc)}
+    	{Doc, _Any} -> {ok, parse_xml(Doc#xmlElement.content)}
     	catch _:E -> {error, E}
     end.
 
@@ -71,7 +71,7 @@ get_reply(Url,Id) ->
 		{ok,_,
 			[{'p:getResultResponse', _, true, _, Reply}]} -> extract_and_save_reply(Reply, File, "1.0");	%%% Only for 1.0 version !!!
 		{ok, _,
-			[{'p:getResultResponse', _, true, _RComment, Reply, RCode, DocVer}]} ->
+			[{'p:getResultResponse', _, true, _RComment, Reply, _RCode, DocVer}]} ->
 				extract_and_save_reply(Reply, File, DocVer);
 		{ok, _,
 			[{'p:getResultResponse', _, false, _RComment, _Reply, RCode, _DocVer}]} ->
@@ -104,38 +104,62 @@ write_csv(Io,[H|T],S,E) ->
 
 %% @hidden
 parse_xml(D) ->
-	PList = [ [ case El1#xmlElement.name of
-					decision ->
-						Dl = [ extract(A) || A <- El1#xmlElement.attributes ],
-						[{decision, proplists:get_value(number, Dl)}, 
-						 {org, proplists:get_value(org, Dl)}, {date, proplists:get_value(date, Dl)}];
-					_ ->
-						[ extract(A) || A <- El1#xmlElement.content ]
-				end
-			|| El1 <- El] || El <- [ El#xmlElement.content || El <- D#xmlElement.content]],
+	PList = [ parse_element_attrs(El) ++ [parse_element_content(El1) || El1 <- El#xmlElement.content, is_record(El1, xmlElement)] || El <- D#xmlElement.content, is_record(El, xmlElement)],
 			List = [lists:flatten(E) || E <- PList],
+			io:format("List: ~p~n", [PList]),
 			lists:foldl(fun(E, Acc) ->
 					case proplists:get_all_values(url, E)  of
+						[] -> Acc ++ [[{url, proplists:get_value(url, E)},
+									 {id,proplists:get_value(id, E)},
+									 {type,list_to_integer(proplists:get_value(entryType, E))},
+									 {includeTime,proplists:get_value(includeTime, E)},
+					 				 {decision, proplists:get_value(decision, E)},
+					 				 {org, proplists:get_value(org, E)},
+					 				 {date, proplists:get_value(date, E)},
+		                             {domain, proplists:get_value(domain, E)},
+		                             {subnet, proplists:get_value(ipSubnet, E)},
+		                             {ip, string:join(proplists:get_all_values(ip, E) , " ")}]];
 						[Val] when is_list(Val) -> Acc ++ [[{url, proplists:get_value(url, E)},
-									 				 {decision, proplists:get_value(decision, E)},
-									 				 {org, proplists:get_value(org, E)},
-									 				 {date, proplists:get_value(date, E)},
-						                             {domain, proplists:get_value(domain, E)},
-						                             {ip, string:join(proplists:get_all_values(ip, E) , " ")}]];
+									 {id,proplists:get_value(id, E)},
+									 {type,list_to_integer(proplists:get_value(entryType, E))},
+									 {includeTime,proplists:get_value(includeTime, E)},
+					 				 {decision, proplists:get_value(decision, E)},
+					 				 {org, proplists:get_value(org, E)},
+					 				 {date, proplists:get_value(date, E)},
+		                             {domain, proplists:get_value(domain, E)},
+		                             {subnet, proplists:get_value(ipSubnet, E)},
+		                             {ip, string:join(proplists:get_all_values(ip, E) , " ")}]];
 						Val when is_list(Val) ->  FList = [ [{url, El},
+									 {id,proplists:get_value(id, E)},
+									 {type,list_to_integer(proplists:get_value(entryType, E))},
+									 {includeTime,proplists:get_value(includeTime, E)},
 									 {decision, proplists:get_value(decision, E)},
 									 {org, proplists:get_value(org, E)},
 									 {date, proplists:get_value(date, E)},
 						             {domain, proplists:get_value(domain, E)},
+						             {subnet, proplists:get_value(ipSubnet, E)},
 						             {ip, string:join(proplists:get_all_values(ip, E) , " ")}] || El <- Val],
 						             lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
 					end
 			end, [], List).
-
+%% @hidden
+parse_element_attrs(El) ->
+	[  extract(A) || A <- El#xmlElement.attributes ].
+%% @hidden
+parse_element_content(El) ->
+case El#xmlElement.name of
+	decision ->
+		Dl = [ extract(A) || A <- El#xmlElement.attributes ],
+		[{decision, proplists:get_value(number, Dl)}, 
+		 {org, proplists:get_value(org, Dl)}, {date, proplists:get_value(date, Dl)}];
+	_ ->
+		[ extract(A) || A <- El#xmlElement.content ]
+end.
 %% @hidden
 extract(#xmlAttribute{name = date, value = Value}) -> {date, Value};
 extract(#xmlAttribute{name = number, value = Value}) -> {number, unicode:characters_to_list(win_to_utf(Value))};
 extract(#xmlAttribute{name = org, value = Value}) -> {org, unicode:characters_to_list(win_to_utf(Value))};
+extract(#xmlAttribute{name = Name, value = Value}) -> {Name, Value};
 extract(#xmlText{parents=[{Name,_},_,_], value = Value}) -> {Name, unicode:characters_to_list(win_to_utf(Value))};
 extract(_) -> ok.
 
