@@ -88,6 +88,9 @@ last_update(Url) ->
 		{ok,_,
 			[{'p:getLastDumpDateExResponse',_,LastDumpMs,LastDumpUrgMs}]} ->
 				{ok, list_to_integer(LastDumpMs) div 1000, list_to_integer(LastDumpUrgMs) div 1000};
+		{ok,_,
+			[{'p:getLastDumpDateExResponse',_,LastDumpMs,LastDumpUrgMs, _WebServVer, _DumpFormatVer, _DocVer}]} ->
+				{ok, list_to_integer(LastDumpMs) div 1000, list_to_integer(LastDumpUrgMs) div 1000};
 		E -> {error, E}
 	catch _:X -> {error, X}
 	end.

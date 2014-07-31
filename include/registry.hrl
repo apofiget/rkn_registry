@@ -9,7 +9,8 @@
 			{dump_csv, true},
 			{csv_file, "priv/dump.csv"},
     	{csv_separator, ";"},
-    	{csv_fields, [decision,url,domain,ip]}
+    	{csv_fields, [decision,url,domain,ip]},
+    	{dump_format_ver, "2.0"}
 		]).
 
 -define(MONTH,[{1,"January"}, {2,"February"}, {3,"March"}, {4,"April"}, 
