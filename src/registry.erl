@@ -72,7 +72,7 @@ handle_call({Filter, Crt}, _From, #{ table := Tid } = State) ->
 	{reply, R, State};
 
 handle_call({clean_oldest, Ts}, _From, #{ table := Tab } = State) -> 
-	Ms = ets:fun2ms(fun({H,{T,L}} = Obj) when T < Ts -> H end),
+	Ms = ets:fun2ms(fun({H,{T,L}}) when T < Ts -> H end),
 	case ets:match_spec_run(ets:tab2list(Tab),ets:match_spec_compile(Ms)) of
 		[] -> ok;
 		[List] -> [ ets:delete(Tab, K)  || K <- List],
