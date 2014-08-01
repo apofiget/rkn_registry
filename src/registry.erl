@@ -10,7 +10,8 @@
 -export([start/2, set_last_update/1, get_reply/1, 
 		get_reply/2, process_reply/1, status/0, list/0, 
 		filter/1, get_last_update/0, get_last_update/1, 
-		get_codestring/2, get_codestring/4, set_codestring/1]).
+		get_codestring/2, get_codestring/4, set_codestring/1, 
+		clean_oldest/1]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -28,6 +29,8 @@ process_reply(Reply) -> gen_server:cast(?MODULE, {process_reply, Reply}).
 status() -> gen_server:call(?MODULE, {status}).
 list() -> gen_server:call(?MODULE, {list}).
 filter(Crt) -> gen_server:call(?MODULE, {filter, Crt}).
+
+clean_oldest(Ts) -> gen_server:call(?MODULE, {clean_oldest, Ts}). 
 
 start(Xml, Sign) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Xml, Sign], []).
@@ -52,7 +55,7 @@ handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, las
 handle_call({list}, _From, #{ table := Tid } = State) -> 
 	List = case ets:tab2list(Tid) of
 				[] -> [];
-				L  -> [E || {_,E} <- L]
+				L  -> [E || {_,{_,E}} <- L]
 			end, 
 	{reply,List,State};
 
@@ -64,11 +67,22 @@ handle_call({Filter, Crt}, _From, #{ table := Tid } = State) ->
 							true -> Acc;
 							false -> Acc ++ [E]
 						end 
-						end, [], [proplists:get_value(Crt, E) || {_,E} <- L])
+						end, [], [proplists:get_value(Crt, E) || {_,{_,E}} <- L])
 		end, 
 	{reply, R, State};
 
-handle_call(_Request, _From, State) -> {reply, ok, State}.
+handle_call({clean_oldest, Ts}, _From, #{ table := Tab } = State) -> 
+	Ms = ets:fun2ms(fun({H,{T,L}} = Obj) when T < Ts -> H end),
+	case ets:match_spec_run(ets:tab2list(Tab),ets:match_spec_compile(Ms)) of
+		[] -> ok;
+		[List] -> [ ets:delete(Tab, K)  || K <- List],
+			lager:debug("Clean ~p oldest records.~n",[length(List)])
+	end,
+	{reply, ok, State};
+
+handle_call(Request, _From, State) -> 
+	lager:debug("Unexpected call: ~p~n",[Request]),
+	{reply, ok, State}.
 
 handle_cast({get_last_update, Url}, State) -> 
 	spawn_link(?MODULE, get_last_update, [Url]),
@@ -147,7 +161,8 @@ handle_cast({process_reply, {ok, File, Arch, _Ver}},#{codestring := Code, table 
 			Ts = tools:unix_ts(),
 			lists:map(fun(E) -> 
 							ets:insert(Tid, {erlang:phash2(tools:to_list(proplists:get_value(url, E)) ++ tools:to_list(proplists:get_value(ip, E))), {Ts, E}})
-						end, List);
+						end, List),
+			timer:apply_after(5000, ?MODULE, clean_oldest, [Ts]);
 		{error, E} -> 
 			lager:error("Parse XML error: ~tp~n",[term_to_binary(E)])
 	end,
