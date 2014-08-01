@@ -17,7 +17,7 @@
 %% @end
 load_xml(File) when is_list(File) ->
     try xmerl_scan:file(File,[{encoding, 'latin1'}]) of
-    	{Doc, _Any} -> {ok, parse_xml(Doc#xmlElement.content)}
+    	{Doc, _Any} -> {ok, parse_xml(Doc)}
     	catch _:E -> {error, E}
     end.
 
