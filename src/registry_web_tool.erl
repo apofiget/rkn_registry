@@ -21,9 +21,11 @@ handle_act(list) ->
 		[] -> prep("error","No data");
 		List -> prep("ok",[json2:obj_from_list(El) || El <- 
 			[ case E of 
-				{type, I} -> {type, tools:get_reg_type(I)}; 
-				{K,undefined} -> 
-				{K,<<"Значение атрибута не определено"/utf8>>}; _-> E 
+				{type, I} -> 
+					{type, tools:get_reg_type(I)}; 
+				{K,V} when V =:= undefined; V =:= [] -> 
+					{K,<<"Значение атрибута не определено"/utf8>>}; 
+				_-> E 
 			end || E <- List] ])
 	end;
 

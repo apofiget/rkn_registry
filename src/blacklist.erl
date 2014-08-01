@@ -104,42 +104,17 @@ write_csv(Io,[H|T],S,E) ->
 
 %% @hidden
 parse_xml(D) ->
-	PList = [ parse_element_attrs(El) ++ [parse_element_content(El1) || El1 <- El#xmlElement.content, is_record(El1, xmlElement)] || El <- D#xmlElement.content, is_record(El, xmlElement)],
+	PList = [ parse_element_attrs(El) ++ [parse_element_content(El1) 
+		|| El1 <- El#xmlElement.content, is_record(El1, xmlElement)] 
+		|| El <- D#xmlElement.content, is_record(El, xmlElement)],
 			List = [lists:flatten(E) || E <- PList],
-			io:format("List: ~p~n", [PList]),
 			lists:foldl(fun(E, Acc) ->
 					case proplists:get_all_values(url, E)  of
-						[] -> Acc ++ [[{url, proplists:get_value(url, E)},
-									 {id,proplists:get_value(id, E)},
-									 {type,list_to_integer(proplists:get_value(entryType, E))},
-									 {includeTime,proplists:get_value(includeTime, E)},
-					 				 {decision, proplists:get_value(decision, E)},
-					 				 {org, proplists:get_value(org, E)},
-					 				 {date, proplists:get_value(date, E)},
-		                             {domain, proplists:get_value(domain, E)},
-		                             {subnet, proplists:get_value(ipSubnet, E)},
-		                             {ip, string:join(proplists:get_all_values(ip, E) , " ")}]];
-						[Val] when is_list(Val) -> Acc ++ [[{url, proplists:get_value(url, E)},
-									 {id,proplists:get_value(id, E)},
-									 {type,list_to_integer(proplists:get_value(entryType, E))},
-									 {includeTime,proplists:get_value(includeTime, E)},
-					 				 {decision, proplists:get_value(decision, E)},
-					 				 {org, proplists:get_value(org, E)},
-					 				 {date, proplists:get_value(date, E)},
-		                             {domain, proplists:get_value(domain, E)},
-		                             {subnet, proplists:get_value(ipSubnet, E)},
-		                             {ip, string:join(proplists:get_all_values(ip, E) , " ")}]];
-						Val when is_list(Val) ->  FList = [ [{url, El},
-									 {id,proplists:get_value(id, E)},
-									 {type,list_to_integer(proplists:get_value(entryType, E))},
-									 {includeTime,proplists:get_value(includeTime, E)},
-									 {decision, proplists:get_value(decision, E)},
-									 {org, proplists:get_value(org, E)},
-									 {date, proplists:get_value(date, E)},
-						             {domain, proplists:get_value(domain, E)},
-						             {subnet, proplists:get_value(ipSubnet, E)},
-						             {ip, string:join(proplists:get_all_values(ip, E) , " ")}] || El <- Val],
-						             lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
+						[] -> 
+							Acc ++ [[{url, proplists:get_value(url, E)}] ++ normalize_proplist(E)];
+						Val when is_list(Val) ->  
+							FList = [ [{url, El}]  ++ normalize_proplist(E) || El <- Val],
+						    lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
 					end
 			end, [], List).
 %% @hidden
@@ -155,6 +130,17 @@ case El#xmlElement.name of
 	_ ->
 		[ extract(A) || A <- El#xmlElement.content ]
 end.
+%% @hidden
+normalize_proplist(E) ->
+	[{id,proplists:get_value(id, E)},
+	{type,list_to_integer(proplists:get_value(entryType, E))},
+	{includeTime,proplists:get_value(includeTime, E)},
+	{decision, proplists:get_value(decision, E)},
+	{org, proplists:get_value(org, E)},
+	{date, proplists:get_value(date, E)},
+	{domain, proplists:get_value(domain, E)},
+	{subnet, proplists:get_value(ipSubnet, E)},
+	{ip, string:join(proplists:get_all_values(ip, E) , " ")}].
 %% @hidden
 extract(#xmlAttribute{name = date, value = Value}) -> {date, Value};
 extract(#xmlAttribute{name = number, value = Value}) -> {number, unicode:characters_to_list(win_to_utf(Value))};
