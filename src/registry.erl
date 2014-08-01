@@ -144,8 +144,9 @@ handle_cast({process_reply, {ok, File, Arch, _Ver}},#{codestring := Code, table 
 					end;
 				true -> ok
 			end,
-			lists:map(fun([{url, U}, {decision, _D}, {org, _Org}, {date, _Date}, {domain, _Dom}, {ip, IPs}] = E) -> 
-							ets:insert(Tid, {erlang:phash2(U ++ IPs), E})
+			Ts = tools:unix_ts(),
+			lists:map(fun(E) -> 
+							ets:insert(Tid, {erlang:phash2(tools:to_list(proplists:get_value(url, E)) ++ tools:to_list(proplists:get_value(ip, E))), {Ts, E}})
 						end, List);
 		{error, E} -> 
 			lager:error("Parse XML error: ~tp~n",[term_to_binary(E)])

@@ -117,9 +117,11 @@ parse_xml(D) ->
 						    lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
 					end
 			end, [], List).
+
 %% @hidden
 parse_element_attrs(El) ->
 	[  extract(A) || A <- El#xmlElement.attributes ].
+
 %% @hidden
 parse_element_content(El) ->
 case El#xmlElement.name of
@@ -130,6 +132,7 @@ case El#xmlElement.name of
 	_ ->
 		[ extract(A) || A <- El#xmlElement.content ]
 end.
+
 %% @hidden
 normalize_proplist(E) ->
 	[{id,proplists:get_value(id, E)},
@@ -141,6 +144,7 @@ normalize_proplist(E) ->
 	{domain, proplists:get_value(domain, E)},
 	{subnet, proplists:get_value(ipSubnet, E)},
 	{ip, string:join(proplists:get_all_values(ip, E) , " ")}].
+
 %% @hidden
 extract(#xmlAttribute{name = date, value = Value}) -> {date, Value};
 extract(#xmlAttribute{name = number, value = Value}) -> {number, unicode:characters_to_list(win_to_utf(Value))};
