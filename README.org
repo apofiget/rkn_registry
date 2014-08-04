@@ -49,7 +49,7 @@
    ACTION =
 	* list - дамп в формате JSON
 	* status - статус сервера в формате JSON
-	* filter&match = [ip | domain | org | date | decision] - вывод только указанного поля
+	* filter&match = [ip | domain | org | date | decision | subnet | id | includeTime | type] - вывод только указанного поля (данные дедуплицируются!)
 	* dump_last_zip - получение последнего скачанного архива
 	* dump_last_csv - получение последнего CSV дампа
 	* dump_last_xml - получение последнего XML файла с реестром

@@ -12,8 +12,8 @@
 			end, {"application/zip", Cont};
 		xml -> {"application/xml", read_cont("priv/dump.xml")};
 		_ -> 
-			Cont = case get_option(dump_csv) of
-				true -> read_cont(get_option(csv_file));
+			Cont = case tools:get_option(dump_csv) of
+				true -> read_cont(tools:get_option(csv_file));
 				_ -> []
 			end, {"text/csv", Cont}
 	end, 
