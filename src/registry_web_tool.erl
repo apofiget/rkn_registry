@@ -10,23 +10,29 @@
 -include("include/registry.hrl").
 
 act(Act, Args) -> 
-	case Act of
-		filter -> handle_act(Act, list_to_atom(proplists:get_value("match", Args, "undefined")));
-		_-> handle_act(Act)
-	end.
+	Fn = case Act of
+		filter -> fun() -> handle_act(Act, list_to_atom(proplists:get_value("match", Args, "undefined"))) end;
+		_-> fun() -> handle_act(Act) end
+	end,
+	try Fn()	
+		catch _:X -> 
+			lager:error("Runtime error. Stacktrace: ~p~n",[erlang:get_stacktrace()]),
+			prep("error","Ошибка исполнения") end.
 
 %%% Internals
 handle_act(list) ->
 	case registry:list() of
 		[] -> prep("error","No data");
 		List -> prep("ok",[json2:obj_from_list(El) || El <- 
-			[ case E of 
-				{type, I} -> 
-					{type, tools:get_reg_type(I)}; 
-				{K,V} when V =:= undefined; V =:= [] -> 
-					{K,<<"Значение атрибута не определено"/utf8>>}; 
-				_-> E 
-			end || E <- List] ])
+			[ lists:foldl(fun(El, Acc) -> 
+				R = case El of 
+					{type, I} -> 
+						{type, tools:get_reg_type(I)}; 
+					{K,V} when V =:= undefined; V =:= [] -> 
+						{K,<<"Значение атрибута не определено"/utf8>>}; 
+					_-> El
+			end, Acc ++ [R]
+			end, [], E) || E <- List] ])
 	end;
 
 handle_act(status) -> prep("ok",json2:obj_from_list(registry:status()));
