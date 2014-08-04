@@ -9,7 +9,7 @@
 
 -export([start/2, set_last_update/1, get_reply/1, 
 		get_reply/2, process_reply/1, status/0, list/0, 
-		filter/1, get_last_update/0, get_last_update/1, 
+		list_only/1, get_last_update/0, get_last_update/1, 
 		get_codestring/2, get_codestring/4, set_codestring/1, 
 		clean_old/1]).
 
@@ -30,7 +30,7 @@ process_reply(Reply) -> gen_server:cast(?MODULE, {process_reply, Reply}).
 
 status() -> gen_server:call(?MODULE, {status}).
 list() -> gen_server:call(?MODULE, {list}).
-filter(Crt) ->  gen_server:call(?MODULE, {filter, Crt}).
+list_only(Crt) ->  gen_server:call(?MODULE, {list_only, Crt}).
 
 clean_old(Ts) -> gen_server:call(?MODULE, {clean_old, Ts}). 
 
@@ -61,7 +61,7 @@ handle_call({list}, _From, #{ table := Tid } = State) ->
 			end, 
 	{reply,List,State};
 
-handle_call({filter, Crt}, _From, #{ table := Tid } = State) -> 
+handle_call({list_only, Crt}, _From, #{ table := Tid } = State) -> 
 	R = case ets:tab2list(Tid) of
 				[] -> [];
 				L  -> 

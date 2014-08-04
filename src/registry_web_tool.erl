@@ -11,7 +11,7 @@
 
 act(Act, Args) -> 
 	Fn = case Act of
-		filter -> fun() -> handle_act(Act, list_to_atom(proplists:get_value("match", Args, "undefined"))) end;
+		list_only -> fun() -> handle_act(Act, list_to_atom(proplists:get_value("field", Args, "undefined"))) end;
 		_-> fun() -> handle_act(Act) end
 	end,
 	try Fn()	
@@ -39,8 +39,8 @@ handle_act(status) -> prep("ok",json2:obj_from_list(registry:status()));
 
 handle_act(_) -> prep("error","Unknown function").
 
-handle_act(filter, Crt) ->
-	case registry:filter(Crt) of
+handle_act(list_only, Crt) ->
+	case registry:list_only(Crt) of
 		[] -> prep("error","No data");
 		List -> prep("ok",[json2:encode(El) || El <- List ])
 	end.
