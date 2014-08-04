@@ -9,13 +9,15 @@
 			Cont = case proplists:get_value("lastArchive", registry:status()) of
 				"" -> [];
 				F -> read_cont(F)
-			end, {"application/zip", Cont};
+			end, 
+			{"application/zip", Cont};
 		xml -> {"application/xml", read_cont("priv/dump.xml")};
 		_ -> 
 			Cont = case tools:get_option(dump_csv) of
 				true -> read_cont(tools:get_option(csv_file));
 				_ -> []
-			end, {"text/csv", Cont}
+			end, 
+			{"text/csv", Cont}
 	end, 
 	{content, Mime, Content}.
 

@@ -136,7 +136,7 @@ end.
 %% @hidden
 normalize_proplist(E) ->
 	[{id,proplists:get_value(id, E)},
-	{type,list_to_integer(proplists:get_value(entryType, E))},
+	{entryType,list_to_integer(proplists:get_value(entryType, E))},
 	{includeTime,proplists:get_value(includeTime, E)},
 	{decision, proplists:get_value(decision, E)},
 	{org, proplists:get_value(org, E)},
@@ -168,9 +168,9 @@ extract_and_save_reply(Reply, File, Ver) ->
 %% recipe from http://stm.rest.ru/blog/?p=75
 conv2(Char) ->
 	if
-		Char == 136 -> _Char = Char + 889; %% Ё
-		Char == 168 -> _Char = Char + 969; %% ё
-		Char >= 191 -> _Char = Char + 848; %% А..Яа..я
+		Char == 136 -> Char + 889; %% Ё
+		Char == 168 -> Char + 969; %% ё
+		Char >= 191 -> Char + 848; %% А..Яа..я
 		true -> Char
 	end.
 
