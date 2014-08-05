@@ -8,22 +8,22 @@
 -compile([{parse_transform, lager_transform}]).
 
 -export([load_xml/1, send_req/3, send_req/4, get_reply/2, last_update/1,
-		 export_to_csv/4, jnx_set_route/2, jnx_del_route/2, parse_xml/1]).
+		 export_to_csv/4, jnx_set_route/2, jnx_del_route/2]).
 
 %% @spec load_xml(F :: list()) -> {ok, DeepList} | {error, Reason}
 %%		DeepList = [Proplist]
-%%		Proplist = [{decision,list()} | {url, list()} | {domain, list()} | {ip, list()}]
+%%		Proplist = [{decision,list()} | {url, list()} | {domain, list()} | {ip, list()} | {id, list()} | {subnet , list()} | {entryType, integer} | {includeTime, list()}]
 %% @doc Open XML file file F and load list from it. File encoding must be UTF-8
 %% @end
 load_xml(File) when is_list(File) ->
     try xmerl_scan:file(File,[{encoding, 'latin1'}]) of
-    	{Doc, _Any} -> {ok, parse_xml(Doc)}
+    	{Doc, _Any} -> {ok, xml_to_proplist(Doc)}
     	catch _:E -> {error, E}
     end.
 
 %% @spec export_to_csv(F :: list(), L :: DeepList, S :: Separator, Fields) -> ok | {error, Reason}
 %%		DeepList = [Proplist]
-%%		Proplist = [{decision,list()} | {url, list()} | {domain, list()} | {ip, list()}]
+%%		Proplist = [{decision,list()} | {url, list()} | {domain, list()} | {ip, list()} | {id, list()} | {subnet , list()} | {entryType, integer} | {includeTime, list()}]
 %%		Separator = character()
 %%		Fields = decision | domain | url | ip
 %% @doc Write blacklist to file F as CSV, with separator S.
@@ -103,20 +103,19 @@ write_csv(Io,[H|T],S,E) ->
 	write_csv(Io,T,S,E). 
 
 %% @hidden
-parse_xml(D) ->
-	PList = [ parse_element_attrs(El) ++ [parse_element_content(El1) 
+xml_to_proplist(D) ->
+	List = [ parse_element_attrs(El) ++ [parse_element_content(El1) 
 		|| El1 <- El#xmlElement.content, is_record(El1, xmlElement)] 
 		|| El <- D#xmlElement.content, is_record(El, xmlElement)],
-			List = [lists:flatten(E) || E <- PList],
-			lists:foldl(fun(E, Acc) ->
-					case proplists:get_all_values(url, E)  of
-						[] -> 
-							Acc ++ [[{url, proplists:get_value(url, E)}] ++ normalize_proplist(E)];
-						Val when is_list(Val) ->  
-							FList = [ [{url, El}]  ++ normalize_proplist(E) || El <- Val],
-						    lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
-					end
-			end, [], List).
+		lists:foldl(fun(E, Acc) ->
+			case proplists:get_all_values(url, E)  of
+				[] -> 
+					Acc ++ [[{url, proplists:get_value(url, E)}] ++ normalize_proplist(E)];
+				Val when is_list(Val) ->  
+					FList = [ [{url, El}]  ++ normalize_proplist(E) || El <- Val],
+				  lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
+			end
+		end, [], [lists:flatten(E) || E <- List]).
 
 %% @hidden
 parse_element_attrs(El) ->
