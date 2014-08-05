@@ -60,7 +60,7 @@ send_req(Url, Rf, Sf, Ver) ->
 	catch _:X -> {error, X}
 	end.	
 
-%% @spec get_reply(Id :: list()) -> {ok, XMLFileName, ArchiveFileName} | {error, Reason}
+%% @spec get_reply(Id :: list()) -> {ok, XMLFileName, ArchiveFileName, Version} | {error, Reason}
 %% @doc Fetch reply from register service, store archive and extract XML file.
 %% @end
 get_reply(Url,Id) ->
@@ -69,7 +69,8 @@ get_reply(Url,Id) ->
 	%%% pattern-matching when HTTP error while process RPC
 	try yaws_soap_lib:call(Url, "getResult",[Id]) of
 		{ok,_,
-			[{'p:getResultResponse', _, true, _, Reply}]} -> extract_and_save_reply(Reply, File, "1.0");	%%% Only for 1.0 version !!!
+			[{'p:getResultResponse', _, true, _, Reply}]} -> 
+			 extract_and_save_reply(Reply, File, "1.0");	%%% Only for 1.0 version !!!
 		{ok, _,
 			[{'p:getResultResponse', _, true, _RComment, Reply, _RCode, DocVer}]} ->
 				extract_and_save_reply(Reply, File, DocVer);
