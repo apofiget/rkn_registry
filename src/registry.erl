@@ -65,10 +65,13 @@ handle_call({list_only, Crt}, _From, #{ table := Tid } = State) ->
 	R = case ets:tab2list(Tid) of
 				[] -> [];
 				L  -> 
-					lists:foldl(fun(E, Acc) -> 
-						case lists:member(E, Acc) of
+					lists:foldl(fun(Elm, Acc) -> 
+						case lists:member(Elm, Acc) of
 							true -> Acc;
-							false -> Acc ++ [E]
+							false -> 
+								Acc ++ if Crt =:= ip -> Elm; 
+									true -> [Elm]
+								end
 						end 
 					end, [], [proplists:get_value(Crt, E) || {_,{_,E}} <- L])
 		end, 

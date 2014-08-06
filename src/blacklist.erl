@@ -99,7 +99,12 @@ last_update(Url) ->
 %% @hidden
 write_csv(Io,[],_S,_E) -> file:close(Io); 
 write_csv(Io,[H|T],S,E) ->
-	Str = string:join([proplists:get_all_values(El, H) || El <- E], S),
+	Str = string:join([ 
+		if El =:= ip -> 
+			string:join(proplists:get_value(El, H), " "); 
+			true -> proplists:get_all_values(El, H)
+		end
+	 || El <- E], S),
 	file:write(Io, unicode:characters_to_binary(Str ++ "\n")),
 	write_csv(Io,T,S,E). 
 
@@ -111,7 +116,7 @@ xml_to_proplist(D) ->
 		lists:foldl(fun(E, Acc) ->
 			case proplists:get_all_values(url, E)  of
 				[] -> 
-					Acc ++ [[{url, proplists:get_value(url, E)}] ++ normalize_proplist(E)];
+					Acc ++ [[{url, []}] ++ normalize_proplist(E)];
 				Val when is_list(Val) ->  
 					FList = [ [{url, El}]  ++ normalize_proplist(E) || El <- Val],
 				  lists:foldl(fun(E1, Acc0) -> Acc0 ++ [E1] end, Acc, FList)
@@ -143,7 +148,7 @@ normalize_proplist(E) ->
 	{date, proplists:get_value(date, E)},
 	{domain, proplists:get_value(domain, E)},
 	{subnet, proplists:get_value(ipSubnet, E)},
-	{ip, string:join(proplists:get_all_values(ip, E) , " ")}].
+	{ip, proplists:get_all_values(ip, E)}].
 
 %% @hidden
 extract(#xmlAttribute{name = date, value = Value}) -> {date, Value};
