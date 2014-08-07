@@ -12,6 +12,15 @@
 act(Act, Args) -> 
 	Fn = case Act of
 		list_only -> fun() -> handle_act(Act, list_to_atom(proplists:get_value("field", Args, "undefined"))) end;
+		list -> 
+			case [ proplists:get_value(P,yaws_api:parse_query(Args), undefined) || P <- ["field", "value"]] of
+				[undefined, undefined] -> 
+					fun() -> handle_act(Act, fun() -> registry:list() end) end;
+				[F, V] when F =/= undefined, V =/= undefined -> 
+					fun() -> handle_act(Act, fun() -> registry:search(list_to_atom(F) , V) end ) end;
+				[_,_] -> 
+					fun() -> prep("error", "Отсутствуют необходимые аргументы") end
+			end;
 		_-> fun() -> handle_act(Act) end
 	end,
 	try Fn()	
@@ -20,8 +29,12 @@ act(Act, Args) ->
 			prep("error","Ошибка исполнения") end.
 
 %%% Internals
-handle_act(list) ->
-	case registry:list() of
+handle_act(status) -> prep("ok",json2:obj_from_list(registry:status()));
+
+handle_act(_) -> prep("error","Unknown function").
+
+handle_act(list, Fn) ->
+	case Fn() of
 		[] -> prep("error","No data");
 		List -> prep("ok",[json2:obj_from_list(El) || El <- 
 			[ lists:foldl(fun(El, Acc) -> 
@@ -34,10 +47,6 @@ handle_act(list) ->
 			end, Acc ++ [R]
 			end, [], E) || E <- List] ])
 	end;
-
-handle_act(status) -> prep("ok",json2:obj_from_list(registry:status()));
-
-handle_act(_) -> prep("error","Unknown function").
 
 handle_act(list_only, Crt) ->
 	case registry:list_only(Crt) of
