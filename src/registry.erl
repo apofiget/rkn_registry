@@ -11,7 +11,7 @@
 		get_reply/2, process_reply/1, status/0, list/0, 
 		list_only/1, get_last_update/0, get_last_update/1, 
 		get_codestring/2, get_codestring/4, set_codestring/1, 
-		clean_old/1]).
+		clean_old/1, search/2]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -33,6 +33,7 @@ list() -> gen_server:call(?MODULE, {list}).
 list_only(Crt) ->  gen_server:call(?MODULE, {list_only, Crt}).
 
 clean_old(Ts) -> gen_server:call(?MODULE, {clean_old, Ts}). 
+search(In, Value) -> gen_server:call(?MODULE, {search, In, Value}). 
 
 start(Xml, Sign) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Xml, Sign], []).
@@ -85,6 +86,22 @@ handle_call({clean_old, Ts}, _From, #{ table := Tab } = State) ->
 			lager:debug("Clean ~p oldest records.~n",[length(List)])
 	end,
 	{reply, ok, State};
+
+handle_call({search, Field, Value}, _From, #{ table := Tab} = State) ->
+	R = case ets:tab2list(Tab) of
+		[] -> [];
+		L -> lists:foldl(fun(E, Acc) ->
+			Prop = case Field of
+				ip -> proplists:get_value(ip, E);
+				_ -> [proplists:get_value(Field, E)]
+			end,
+			IsMem = lists:member(Value, Prop),
+			if IsMem =:= true -> Acc ++ [E];
+				true -> Acc
+			end 
+		end, [], [Elm || {_,{_,Elm}}<- L]) 
+	end, 
+	{reply, R, State}; 
 
 handle_call(Request, _From, State) -> 
 	lager:debug("Unexpected call: ~p~n",[Request]),
