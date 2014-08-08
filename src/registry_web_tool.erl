@@ -35,7 +35,7 @@ handle_act(_) -> prep("error","Unknown function").
 
 handle_act(list, Fn) ->
 	case Fn() of
-		[] -> prep("error","No data");
+		[] -> prep("ok",[]);
 		List -> prep("ok",[json2:obj_from_list(El) || El <- 
 			[ lists:foldl(fun(El, Acc) -> 
 				R = case El of 
@@ -50,7 +50,7 @@ handle_act(list, Fn) ->
 
 handle_act(list_only, Crt) ->
 	case registry:list_only(Crt) of
-		[] -> prep("error","No data");
+		[] -> prep("ok",[]);
 		List -> prep("ok",[json2:encode(El) || El <- List ])
 	end.
 

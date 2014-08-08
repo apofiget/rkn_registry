@@ -152,12 +152,12 @@ handle_cast({get_reply, Url, Id}, State) ->
 	{noreply, State#{fin_state := wait_for_reply}}; 
 
 handle_cast({process_reply, {error,ErrCode}},#{trycount := 10, codestring := Code} = State) when is_integer(ErrCode) ->
-	lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~tp~n",[Code, tools:get_result_comment(ErrCode)]),
+	lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~tp~n",[Code, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
 	get_last_update(tools:get_option(get_last_update_period)),
 	{noreply, State#{fin_state := get_last_update, trycount := 1, codestring := "", last_error := tools:get_result_comment(ErrCode)}};
 
 handle_cast({process_reply, {error,ErrCode}},#{trycount := Try, codestring := Code} = State) when is_integer(ErrCode) ->
-	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~tp~n",[Code, Try, tools:get_result_comment(ErrCode)]),
+	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~tp~n",[Code, Try, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
 	{ok, _} = timer:apply_after(Try * 5000, ?MODULE, get_reply, [Code]),
 	{noreply, State#{trycount := Try + 1, codestring := Code, last_error := tools:get_result_comment(ErrCode)}};
 
