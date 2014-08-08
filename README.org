@@ -48,6 +48,7 @@
    А затем http://localhost:<port_number>/data.yaws?act=<ACTION>, где
    ACTION =
 	* list - дамп в формате JSON
+	* list&field = [ip | domain | org | date | decision | subnet | id | includeTime ] & value=<ЗНАЧЕНИЕ> - дамп с фильтрацией по значению указанного поля
 	* status - статус сервера в формате JSON
 	* list_only&field = [ip | domain | org | date | decision | subnet | id | includeTime | entryType] - вывод только указанного поля (данные дедуплицируются!)
 	* dump_last_zip - получение последнего скачанного архива
