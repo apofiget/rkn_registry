@@ -1,3 +1,4 @@
+%% -*- coding: utf-8 -*-
 -define(DEFCONF, [
 			{xml, "priv/request.xml"},
 			{sign, "priv/request.bin"},
