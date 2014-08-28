@@ -20,12 +20,12 @@
 
 -include_lib("stdlib/include/ms_transform.hrl").
 
-get_last_update() -> gen_server:cast(?MODULE, {get_last_update, ?REG_SRV_URL}).
+get_last_update() -> gen_server:cast(?MODULE, {get_last_update, tools:get_option(registry_url)}).
 set_last_update(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {set_last_update, Param}).
-get_codestring(Xml, Sign) -> gen_server:cast(?MODULE, {get_codestring, ?REG_SRV_URL, Xml, Sign}).
+get_codestring(Xml, Sign) -> gen_server:cast(?MODULE, {get_codestring, tools:get_option(registry_url), Xml, Sign}).
 set_codestring(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {set_codestring, Param}).
 
-get_reply(Code) -> gen_server:cast(?MODULE, {get_reply, ?REG_SRV_URL, Code}).
+get_reply(Code) -> gen_server:cast(?MODULE, {get_reply, tools:get_option(registry_url), Code}).
 process_reply(Reply) -> gen_server:cast(?MODULE, {process_reply, Reply}).
 
 status() -> gen_server:call(?MODULE, {status}).
