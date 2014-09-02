@@ -1,4 +1,5 @@
 REBAR = `which rebar`
+RELX = `which relx`
 
 compile:
 	@$(REBAR) get-deps
@@ -8,3 +9,7 @@ compile:
 clean:
 	@$(REBAR) clean
 	@rm -f erl_crash.dump
+
+release:
+	@$(REBAR) compile
+	@$(RELX) release
