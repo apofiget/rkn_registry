@@ -9,7 +9,7 @@ start() -> {ok, spawn(?MODULE, run, [])}.
 
 run() ->
     Id = "yaws_emb",
-    Dir = case tools:get_option(www_root) of
+    Dir = case tools:get_option(doc_root) of
             undefined -> {ok, Path} = file:get_cwd(), 
                 Path;
             Path -> Path
