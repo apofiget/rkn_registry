@@ -85,3 +85,10 @@
      {"CodeString",[]},
      {"LastTryCount",1}]
    #+END_EXAMPLE
+
+** Запуск готового релиза
+   * Скачать архив с релизом: https://github.com/apofiget/some_stuff/releases/latest
+   * Развернуть на файловой системе
+   * Отредактировать параметры в файле release/<версия>/sys.config
+   * Запустить приложение bin/rkn_registry start
+   * Для доступа к REPL виртуальной машины выполнить bin/rkn_registry remote_console

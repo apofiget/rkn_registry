@@ -12,4 +12,4 @@ clean:
 
 release:
 	@$(REBAR) compile
-	@$(RELX) release tar
+	@$(RELX) release
