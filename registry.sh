@@ -3,7 +3,7 @@
 LOG_DIR=./
 
 function usage {
-	echo "Usage: ./registry.sh {start|stop|status}"
+	echo "Usage: ./registry.sh {start|stop|status|state}"
 }
 
 case $1 in
@@ -20,6 +20,9 @@ case $1 in
 	;;
 	status)
 		./api.sh status
+	;;
+	state)
+		./api.sh state
 	;;
 	*)
 		usage
