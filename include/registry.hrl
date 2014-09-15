@@ -4,6 +4,7 @@
 			{xml, "/etc/rkn_registry/request.xml"},
 			{sign, "/etc/rkn_registry/request.bin"},
 			{trace, "/var/log/rkn_registry/updates.log"},
+			{www_log_path, "/var/log/rkn_registry/www/" },
 			{hostname, "localhost"},
 			{listen_on, "127.0.0.1"},
 			{get_last_update_period, 600},

@@ -9,17 +9,13 @@ start() -> {ok, spawn(?MODULE, run, [])}.
 
 run() ->
     Id = "yaws_emb",
-    Dir = case tools:get_option(doc_root) of
-            undefined -> {ok, Path} = file:get_cwd(), 
-                Path;
-            Path -> Path
-        end,
+    Dir = get_work_path(),
     GconfList = 
         [{id, Id},
         {server_signature, "Yaws"},
         {log_wrap_size, 1048576},
         {copy_error_log, false},
-	    {logdir, Dir ++ "/priv/logs/www"},
+	    {logdir, tools:get_option(www_log_path)},
 	    {ebin_dir, [Dir ++ "/ebin"]}],
     Docroot = Dir ++ "/www",
     SconfList = 
@@ -35,3 +31,9 @@ run() ->
     yaws_api:setconf(GC, SCList),
     io:format("~n***~p start...~w~n", [?MODULE, self()]),
     {ok, self()}.
+
+get_work_path() -> 
+    case tools:get_option(doc_root) of
+        undefined -> {ok, Path} = file:get_cwd(), Path;
+        Path -> Path
+    end.
