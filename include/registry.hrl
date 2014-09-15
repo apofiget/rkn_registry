@@ -1,9 +1,9 @@
 %% -*- coding: utf-8 -*-
 -define(DEFCONF, [
 			{registry_url, "http://vigruzki.rkn.gov.ru/services/OperatorRequest/?wsdl"},
-			{xml, "priv/request.xml"},
-			{sign, "priv/request.bin"},
-			{trace, "priv/logs/updates.log"},
+			{xml, "/etc/rkn_registry/request.xml"},
+			{sign, "/etc/rkn_registry/request.bin"},
+			{trace, "/var/log/rkn_registry/updates.log"},
 			{hostname, "localhost"},
 			{listen_on, "127.0.0.1"},
 			{get_last_update_period, 600},
