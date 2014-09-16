@@ -7,7 +7,7 @@
 
 -compile([{parse_transform, lager_transform}]).
 
--export([load_xml/1, send_req/3, send_req/4, get_reply/2, last_update/1,
+-export([load_xml/1, send_req/3, send_req/4, get_reply/3, last_update/1,
 		 export_to_csv/4, jnx_set_route/2, jnx_del_route/2]).
 
 %% @spec load_xml(F :: list()) -> {ok, DeepList} | {error, Reason}
@@ -60,20 +60,20 @@ send_req(Url, Rf, Sf, Ver) ->
 	catch _:X -> {error, X}
 	end.	
 
-%% @spec get_reply(Id :: list()) -> {ok, XMLFileName, ArchiveFileName, Version} | {error, Reason}
-%% @doc Fetch reply from register service, store archive and extract XML file.
+%% @spec get_reply(Url :: list(), Id :: list(), SavePath :: list()) -> {ok, ArchiveFileName, Version} | {error, Reason}
+%% @doc Fetch reply from register service and store archive.
 %% @end
-get_reply(Url,Id) ->
-	File = "priv/arch/" ++ arch_name(),
+get_reply(Url,Id, SavePath) ->
+	File = SavePath ++ arch_name(),
 	%%% use try because yaws_soap_lib have error with
 	%%% pattern-matching when HTTP error while process RPC
 	try yaws_soap_lib:call(Url, "getResult",[Id]) of
 		{ok,_,
 			[{'p:getResultResponse', _, true, _, Reply}]} -> 
-			 extract_and_save_reply(Reply, File, "1.0");	%%% Only for 1.0 version !!!
+			 save_reply(Reply, File, "1.0");	%%% Only for 1.0 version !!!
 		{ok, _,
 			[{'p:getResultResponse', _, true, _RComment, Reply, _RCode, DocVer}]} ->
-				extract_and_save_reply(Reply, File, DocVer);
+				save_reply(Reply, File, DocVer);
 		{ok, _,
 			[{'p:getResultResponse', _, false, _RComment, _Reply, RCode, _DocVer}]} ->
 				{error, RCode};
@@ -159,12 +159,10 @@ extract(#xmlText{parents=[{Name,_},_,_], value = Value}) -> {Name, unicode:chara
 extract(_) -> ok.
 
 %% @hidden
-extract_and_save_reply(Reply, File, Ver) ->
+save_reply(Reply, File, Ver) ->
 	Data = base64:decode(Reply),
 	try file:write_file(File, Data) of
-		ok -> 
-			{ok, [XML]} = zip:extract(File,[{cwd,"priv"},{file_list,["dump.xml"]}]),
-			{ok, XML, File, Ver}
+		ok -> {ok, File, Ver}
 	catch _:X -> {error, X}
 	end.
 

@@ -221,5 +221,13 @@ get_codestring(Url, Xml, Sign, Ver) ->
 	set_codestring(Reply).
 
 get_reply(Url, Id) ->
-  Reply = blacklist:get_reply(Url, Id),
-  process_reply(Reply).
+  case blacklist:get_reply(Url, Id, "priv/arch/") of
+  	{ok, File, Ver} -> process_reply(extract_arch(File, Ver));
+  	Reply -> process_reply(Reply)
+  end.
+
+extract_arch(File, Ver) ->
+	case zip:extract(File,[{cwd, "priv" },{file_list,["dump.xml"]}]) of
+		{ok, Xml} -> {ok, Xml, File, Ver};
+		{error, R} -> {error, tools:to_list(R)}
+	end.
