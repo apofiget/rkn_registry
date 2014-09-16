@@ -54,8 +54,7 @@
    #+END_EXAMPLE
 
 ** HTTP API приложения
-  Тип метода для всех запросов - GET
-  URL для всех запросов - /data.yaws
+  Тип метода для всех запросов - GET , URL для всех запросов - /data.yaws
 *** Параметры запросов
 	* act=list - дамп в формате JSON
 	* act=list, field = [ip | domain | org | date | decision | subnet | id | includeTime ], value=<ЗНАЧЕНИЕ> - дамп с фильтрацией по значению указанного поля
