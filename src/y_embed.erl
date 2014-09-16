@@ -15,8 +15,7 @@ run() ->
         {server_signature, "Yaws"},
         {log_wrap_size, 1048576},
         {copy_error_log, false},
-	    {logdir, tools:get_option(www_log_path)},
-	    {ebin_dir, [Dir ++ "/ebin"]}],
+	    {logdir, tools:get_option(www_log_path)}],
     Docroot = Dir ++ "/www",
     SconfList = 
         [{port, tools:get_option(port)}, 
