@@ -12,7 +12,6 @@
 			{get_last_update_period, 600},
 			{port, 8888},
 			{dump_csv, true},
-			{csv_file, "priv/dump.csv"},
     	{csv_separator, ";"},
     	{csv_fields, [decision,url,domain,ip]},
     	{dump_format_ver, "2.0"}

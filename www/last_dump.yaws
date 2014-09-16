@@ -11,10 +11,10 @@
 				F -> read_cont(F)
 			end, 
 			{"application/zip", Cont};
-		xml -> {"application/xml", read_cont("priv/dump.xml")};
+		xml -> {"application/xml", read_cont(tools:get_option(data_store_path) ++ "dump.xml")};
 		_ -> 
 			Cont = case tools:get_option(dump_csv) of
-				true -> read_cont(tools:get_option(csv_file));
+				true -> read_cont(tools:get_option(data_store_path) ++ "dump.csv");
 				_ -> []
 			end, 
 			{"text/csv", Cont}

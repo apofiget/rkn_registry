@@ -172,12 +172,12 @@ handle_cast({process_reply, {ok, File, Arch, _Ver}},#{codestring := Code, table 
 		{ok, List} ->
 			IsDump = tools:get_option(dump_csv),
 			if IsDump -> 
-				DFile = tools:get_option(csv_file),
+				DFile = tools:get_option(data_store_path) ++ "dump.csv",
 				Separator = tools:get_option(csv_separator),
 				FList = tools:get_option(csv_fields),
 					case blacklist:export_to_csv(DFile, List, Separator, FList) of
-						ok -> lager:debug("Dump registry to CSV file: ~p~n",[tools:get_option(csv_file)]);
-						{error, R} -> lager:debug("Error ~p while dump registry to CSV file: ~p~n",[tools:get_option(csv_file), R])
+						ok -> lager:debug("Dump registry to CSV file: ~p~n",[DFile]);
+						{error, R} -> lager:debug("Error ~p while dump registry to CSV file: ~p~n",[DFile, R])
 					end;
 				true -> ok
 			end,
@@ -221,13 +221,13 @@ get_codestring(Url, Xml, Sign, Ver) ->
 	set_codestring(Reply).
 
 get_reply(Url, Id) ->
-  case blacklist:get_reply(Url, Id, "priv/arch/") of
+  case blacklist:get_reply(Url, Id, tools:get_option(data_store_path) ++ "arch/") of
   	{ok, File, Ver} -> process_reply(extract_arch(File, Ver));
   	Reply -> process_reply(Reply)
   end.
 
 extract_arch(File, Ver) ->
-	case zip:extract(File,[{cwd, "priv" },{file_list,["dump.xml"]}]) of
+	case zip:extract(File,[{cwd, tools:get_option(data_store_path) },{file_list,["dump.xml"]}]) of
 		{ok, Xml} -> {ok, Xml, File, Ver};
 		{error, R} -> {error, tools:to_list(R)}
 	end.

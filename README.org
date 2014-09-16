@@ -1,4 +1,4 @@
-* Blacklist
+* RKN_REGISTRY
     Получение данных реестра Роскомнадзора.
     Необходимое ПО:
     * Rebar (https://github.com/rebar/rebar)
@@ -12,26 +12,28 @@
     Параметры которые необходимо изменить:
     * dump_format_ver - версия формата реестра, "1.0" или "2.0", по умолчанию "2.0"
     * get_last_update_period - периодичность проверки актуальности реестра, в секундах
-    * xml - путь до файла с XML запросом, к примеру "/etc/rkn_registry/request.xml"
-    * sign - путь до файла с подписью запроса, к примеру "/etc/rkn_registry/sign.bin"
-    * www_log_path - пусть до каталога содеражащего журналы web сервера, по-умолчанию "/var/log/rkn_registry/www/"
-    * trace - путь до файла с трассировкой событий, к примеру "/var/log/rkn_registry/process.log"
-    * doc_root - путь до каталога с приложением , к примеру "/opt/app"
+    * xml - путь до файла с XML запросом, по-умолчанию "/etc/rkn_registry/request.xml"
+    * sign - путь до файла с подписью запроса, по-умолчанию "/etc/rkn_registry/request.bin"
+    * www_log_path - путь до каталога содеражащего журналы web сервера, по-умолчанию "/var/log/rkn_registry/www/"
+    * www_root - путь до корневого каталога web-сервера, по-умолчанию "/var/opt/rkn_registry/www/"
+    * data_store_path - путь до каталога где будет сохраняться CVS и XML дампы реестра, так же в этом каталоге необходимо создать подкаталог arch/
+    * trace - путь до файла с трассировкой событий, по-умолчанию "/var/log/rkn_registry/process.log"
     * port - порт , который будет слушать web сервер, к примеру 8899
     * listen_on - IPv4 адрес который будет слушать web сервер, к примеру 127.0.0.1
     * hostname - имя виртуального хоста
     * dump_csv - делать дамп в csv при обновлении реестра, true или false
     * csv_separator - разделитель полей для CSV, к примеру ";"
     * csv_fields - имена полей которые будут присутствовать в дампе. 
-    Необходимо указать одно из или все поля:
-	* id
-	* entryType
-	* includeTime
-	* ip
-	* subnet
-	* domain
-	* decision
-	* url
+  
+  *** Наименования и значения полей для формирования CSV дампа
+	 * id - идентификатор записи в реестре
+	 * entryType - тип записи
+	 * includeTime - время включения записи в реестр
+	 * ip - IP адреса ассоциированные с записью
+	 * subnet - подсеть в формате CIDR ассоциированная с записью
+	 * domain - доменное имя
+	 * decision - организациия принявшая решение о включении ресурса в реестр, а так же дата принятия решения
+	 * url - URL ресурса
       , к примеру [id,decision,url,domain,ip].
      Порядок следования полей в файле, будет таким же как порядок имен полей в конфигурации.
 
@@ -47,16 +49,19 @@
    make
     ./dev_start.sh
    #+END_EXAMPLE
-   А затем http://localhost:<port_number>/data.yaws?act=<ACTION>, где
-   ACTION =
-	* list - дамп в формате JSON
-	* list&field = [ip | domain | org | date | decision | subnet | id | includeTime ] & value=<ЗНАЧЕНИЕ> - дамп с фильтрацией по значению указанного поля
-	* status - статус сервера в формате JSON
-	* list_only&field = [ip | domain | org | date | decision | subnet | id | includeTime | entryType] - вывод только указанного поля (данные дедуплицируются!)
-	* dump_last_zip - получение последнего скачанного архива
-	* dump_last_csv - получение последнего CSV дампа
-	* dump_last_xml - получение последнего XML файла с реестром
 
+** HTTP API приложения
+  Тип метода для всех запросов - GET
+  Адрес для всех запросов - /data.yaws
+  *** Параметры запросов
+	* act=list - дамп в формате JSON
+	* act=list, field = [ip | domain | org | date | decision | subnet | id | includeTime ], value=<ЗНАЧЕНИЕ> - дамп с фильтрацией по значению указанного поля
+	* act=status - статус сервера в формате JSON
+	* act=list_only, field = [ip | domain | org | date | decision | subnet | id | includeTime | entryType] - вывод только указанного поля (данные дедуплицируются!)
+	* act=dump_last_zip - получение последнего скачанного архива
+	* act=dump_last_csv - получение последнего CSV дампа
+	* act=dump_last_xml - получение последнего XML файла с реестром
+Пример запроса: http://localhost:8899/data.yaws?act=list&field=domain&value=www.ru
 
 ** Запуск из Erlang REPL
    Запуск сервера:
