@@ -28,4 +28,10 @@ unix_ts() ->
 
 to_list(Term) when is_list(Term) -> Term;
 to_list(Term) when is_atom(Term) -> atom_to_list(Term); 
-to_list(Term) when is_tuple(Term) -> io_lib:format("~p",[tuple_to_list(Term)]).
+to_list(Term) when is_tuple(Term) -> io_lib:format("~p",[tuple_to_list(Term)]);
+to_list(Term) when is_binary(Term) ->
+  case unicode:characters_to_binary(Term) of
+    {error, L, _R} -> Term;
+    {incomplete, L, _B} -> L;
+    L -> L
+  end.  
