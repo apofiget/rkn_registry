@@ -50,13 +50,13 @@ init([Xml, Sign]) ->
     	   lastErrorDateTime => "", childPid => ""}}.
 
 handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, fin_state := FState, lastError := LastErr, 
-          lastErrorDateTime := LastErrDt,  trycount := Try, lastArch := Arch, dumpVersion := DumpVer } = State) ->
+          lastErrorDateTime := LastErrDt,  trycount := Try, lastArch := Arch, dumpVersion := DumpVer, childPid := ChildPid } = State) ->
 	R = [
 			{"XMLRequest", Xml}, {"XMLRequestSign", Sign}, {"dumpFormatVersion", DumpVer},
 			{"lastDumpDate",tools:ts2date(LastDump)}, {"NextAction", atom_to_list(FState)},
 			{"UpdateCounter", Update}, {"lastArchive", Arch}, 
 			{"LastError", tools:to_list(LastErr)}, {"lastErrorDateTime", LastErrDt},
-			{"CodeString", Code}, {"LastTryCount", Try}
+			{"CodeString", Code}, {"LastTryCount", Try}, {"LastChildPid", ChildPid}
 		],
 	{reply, R, State};
 
