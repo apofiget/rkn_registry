@@ -39,6 +39,7 @@ start(Xml, Sign) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Xml, Sign], []).
 
 init([Xml, Sign]) ->
+	process_flag(trap_exit, true),
 	{ok, Trace} = lager:trace_file(tools:get_option(trace), [{module, ?MODULE}], debug),
 	Tid = ets:new(?MODULE, []),
 	{ok, _} = timer:apply_after(100, ?MODULE, get_last_update, []),
@@ -46,7 +47,7 @@ init([Xml, Sign]) ->
     {ok, #{xml => Xml, sign => Sign, table => Tid, lastDumpDate => 0, codestring => "", 
     	   update_count => 0, trycount => 1, lastError => "", fin_state => send_req, trace => Trace, 
     	   lastArch => "", dumpVersion => tools:get_option(dump_format_ver),
-    	   lastErrorDateTime => ""}}.
+    	   lastErrorDateTime => "", childPid => ""}}.
 
 handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, fin_state := FState, lastError := LastErr, 
           lastErrorDateTime := LastErrDt,  trycount := Try, lastArch := Arch, dumpVersion := DumpVer } = State) ->
@@ -112,8 +113,8 @@ handle_call(Request, _From, State) ->
 	{stop, {unexpected_call, Request}, State}.
 
 handle_cast({get_last_update, Url}, State) -> 
-	spawn_link(?MODULE, get_last_update, [Url]),
-	{noreply, State#{fin_state := wait_last_update}}; 
+	P = spawn_link(?MODULE, get_last_update, [Url]),
+	{noreply, State#{fin_state := wait_last_update, childPid := P}}; 
 
 handle_cast({set_last_update, {error, E}}, #{trycount := Try} = State) ->
 	lager:debug("GetLastUpdate. Unexpected reply: ~p~n",[E]),
@@ -133,8 +134,8 @@ handle_cast({set_last_update, {Last, LastUrg}}, #{xml := Xml, sign := Sign, last
 	end;
 
 handle_cast({get_codestring, Url, Xml, Sign}, #{dumpVersion := Ver} = State) ->
-	spawn_link(?MODULE, get_codestring, [Url, Xml, Sign, Ver]),
-	{noreply, State#{fin_state := wait_codestring}};
+	P = spawn_link(?MODULE, get_codestring, [Url, Xml, Sign, Ver]),
+	{noreply, State#{fin_state := wait_codestring, childPid := P}};
 
 handle_cast({set_codestring,{error, E}}, #{trycount := 10} = State) -> 
 	lager:debug("GetCodestring. MaxTry reached. Last reply: ~tp~n",[E]),
@@ -152,8 +153,8 @@ handle_cast({set_codestring,{ok, Code}}, State) ->
 	{noreply, State#{lastDumpDate := tools:unix_ts(), trycount := 1, codestring := Code, fin_state := get_reply}};
 
 handle_cast({get_reply, Url, Id}, State) ->
-	spawn_link(?MODULE, get_reply, [Url, Id]),
-	{noreply, State#{fin_state := wait_for_reply}}; 
+	P = spawn_link(?MODULE, get_reply, [Url, Id]),
+	{noreply, State#{fin_state := wait_for_reply, childPid := P}}; 
 
 handle_cast({process_reply, {error,ErrCode}},#{trycount := 10, codestring := Code} = State) when is_integer(ErrCode) ->
 	lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~tp~n",[Code, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
@@ -199,6 +200,13 @@ handle_cast({process_reply, {ok, File, Arch, _Ver}},#{codestring := Code, table 
 handle_cast(Msg, State) ->
 	lager:debug("Unexpected cast: ~p~n",[Msg]),
 	{stop, {unexpected_cast, Msg}, State}.
+
+handle_info({'EXIT',P,normal}, #{childPid := P} = State) ->
+	{noreply, State#{childPid := ""}};
+
+handle_info({'EXIT', P, E}, #{childPid := P} = State) ->
+	lager:debug("Child process ~p abnirmal terminate with reason: ~p",[P,E]),
+	{stop, {childTerminateAbnormal, E}, State};
 
 handle_info(_Info, State) ->
     {noreply, State}.
