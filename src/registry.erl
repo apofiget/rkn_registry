@@ -205,7 +205,7 @@ handle_info({'EXIT',P,normal}, #{childPid := P} = State) ->
 	{noreply, State#{childPid := ""}};
 
 handle_info({'EXIT', P, E}, #{childPid := P} = State) ->
-	lager:debug("Child process ~p abnirmal terminate with reason: ~p",[P,E]),
+	lager:error("Child process ~p abnormal terminate with reason: ~p",[P,E]),
 	{stop, {childTerminateAbnormal, E}, State};
 
 handle_info(_Info, State) ->
