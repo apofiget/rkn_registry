@@ -21,6 +21,7 @@
 -include_lib("stdlib/include/ms_transform.hrl").
 
 get_last_update() -> gen_server:cast(?MODULE, {get_last_update, tools:get_option(registry_url)}).
+get_last_update(T) -> gen_server:cast(?MODULE, {get_last_update, T}).
 get_last_update_reply(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {get_last_update_reply, Param}).
 get_codestring(Xml, Sign) -> gen_server:cast(?MODULE, {get_codestring, tools:get_option(registry_url), Xml, Sign}).
 get_codestring_reply(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {get_codestring_reply, Param}).
@@ -42,12 +43,12 @@ init([Xml, Sign]) ->
 	process_flag(trap_exit, true),
 	{ok, Trace} = lager:trace_file(tools:get_option(trace), [{module, ?MODULE}], debug),
 	Tid = ets:new(?MODULE, []),
-	{ok, _} = timer:apply_after(100, ?MODULE, get_last_update, []),
+	{ok, TRef} = timer:apply_after(100, ?MODULE, get_last_update, []),
 	io:format("~n***~p start...~p~n", [?MODULE, self()]),
     {ok, #{xml => Xml, sign => Sign, table => Tid, lastDumpDate => 0, codestring => "", 
     	   update_count => 0, trycount => 1, lastError => "", fin_state => send_req, trace => Trace, 
     	   lastArch => "", dumpVersion => tools:get_option(dump_format_ver),
-    	   lastErrorDateTime => "", childPid => ""}}.
+    	   lastErrorDateTime => "", childPid => "", timer => TRef}}.
 
 handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, fin_state := FState, lastError := LastErr, 
           lastErrorDateTime := LastErrDt,  trycount := Try, lastArch := Arch, dumpVersion := DumpVer, childPid := ChildPid } = State) ->
@@ -112,14 +113,18 @@ handle_call(Request, _From, State) ->
 	lager:debug("Unexpected call: ~p~n",[Request]),
 	{stop, {unexpected_call, Request}, State}.
 
+handle_cast({get_last_update, Time}, State) when is_integer(Time) ->
+	{ok, TRef} = timer:apply_after(Time*1000, ?MODULE, get_last_update, []),
+	{noreply, State#{timer := TRef}}; 
+
 handle_cast({get_last_update, Url}, State) -> 
-	P = spawn_link(?MODULE, get_last_update, [Url]),
+	P = spawn_link(?MODULE, get_last_update_worker, [Url]),
 	{noreply, State#{fin_state := wait_last_update, childPid := P}}; 
 
 handle_cast({get_last_update_reply, {error, E}}, #{trycount := Try} = State) ->
 	lager:debug("GetLastUpdate. Unexpected reply: ~p~n",[E]),
-  {ok, _} = timer:apply_after(Try * 30000, ?MODULE, get_last_update, [tools:get_option(get_last_update_period)]),
-  {noreply, State#{fin_state := get_last_update, trycount := Try + 1, lastError := E, lastErrorDateTime := tools:ts2date(tools:unix_ts())}};
+	{ok, TRef} = timer:apply_after(Try * 30000, ?MODULE, get_last_update, [tools:get_option(get_last_update_period)]),
+	{noreply, State#{fin_state := get_last_update, trycount := Try + 1, lastError := E, lastErrorDateTime := tools:ts2date(tools:unix_ts()), timer := TRef}};
 
 handle_cast({get_last_update_reply, {Last, LastUrg}}, #{xml := Xml, sign := Sign, lastDumpDate := LastDump} = State) ->
 	Ts = tools:unix_ts(),
@@ -144,13 +149,13 @@ handle_cast({get_codestring_reply,{error, E}}, #{trycount := 10} = State) ->
 
 handle_cast({get_codestring_reply,{error, E}}, #{xml := Xml, sign := Sign, trycount := Try} = State) -> 
 	lager:debug("Not success reply. Trycount: ~p , try later. Reply: ~tp~n",[Try, E]),
-	{ok, _} = timer:apply_after(Try * 5000, ?MODULE, get_codestring, [Xml, Sign]),
-	{noreply, State#{trycount := Try + 1, lastError := E, lastErrorDateTime := tools:ts2date(tools:unix_ts())}};
+	{ok, TRef} = timer:apply_after(Try * 5000, ?MODULE, get_codestring, [Xml, Sign]),
+	{noreply, State#{trycount := Try + 1, lastError := E, lastErrorDateTime := tools:ts2date(tools:unix_ts()), timer := TRef}};
 
 handle_cast({get_codestring_reply,{ok, Code}}, State) -> 
 	lager:debug("Code: ~p Wait for registry.~n",[Code]),
-	{ok, _} = timer:apply_after(180000, ?MODULE, get_reply, [Code]), 
-	{noreply, State#{lastDumpDate := tools:unix_ts(), trycount := 1, codestring := Code, fin_state := get_reply}};
+	{ok, TRef} = timer:apply_after(180000, ?MODULE, get_reply, [Code]), 
+	{noreply, State#{lastDumpDate := tools:unix_ts(), trycount := 1, codestring := Code, fin_state := get_reply, timer := TRef}};
 
 handle_cast({get_reply, Url, Id}, State) ->
 	P = spawn_link(?MODULE, get_reply, [Url, Id]),
@@ -163,8 +168,8 @@ handle_cast({process_reply, {error,ErrCode}},#{trycount := 10, codestring := Cod
 
 handle_cast({process_reply, {error,ErrCode}},#{trycount := Try, codestring := Code} = State) when is_integer(ErrCode) ->
 	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~tp~n",[Code, Try, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
-	{ok, _} = timer:apply_after(Try * 5000, ?MODULE, get_reply, [Code]),
-	{noreply, State#{trycount := Try + 1, codestring := Code, lastError := tools:get_result_comment(ErrCode), lastErrorDateTime := tools:ts2date(tools:unix_ts())}};
+	{ok, TRef} = timer:apply_after(Try * 5000, ?MODULE, get_reply, [Code]),
+	{noreply, State#{trycount := Try + 1, codestring := Code, lastError := tools:get_result_comment(ErrCode), lastErrorDateTime := tools:ts2date(tools:unix_ts()), timer := TRef}};
 
 handle_cast({process_reply, {error,E}},#{trycount := Try, codestring := Code} = State) ->
 	lager:debug("GetReply. Codestring: ~p, Trycount: ~p Unknown error: ~tp~n",[Code, Try, term_to_binary(E)]),
@@ -211,7 +216,8 @@ handle_info({'EXIT', P, E}, #{childPid := P} = State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-terminate(_Reason, State) ->
+terminate(_Reason, #{timer := TRef} = State) ->
+	timer:cancel(TRef), 
 	lager:stop_trace(maps:get(trace, State)), 
     ok.
 
@@ -220,10 +226,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %%% Internals
 
-get_last_update(Time) when is_integer(Time) -> 
-	timer:apply_after(Time*1000, ?MODULE, get_last_update, []);
-
-get_last_update(Url) ->
+get_last_update_worker(Url) ->
 	case blacklist:last_update(Url) of
 		{ok, Last, LastUrg} -> get_last_update_reply({Last, LastUrg});
 		{error,E} -> get_last_update_reply({error,E})
