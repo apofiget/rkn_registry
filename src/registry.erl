@@ -7,7 +7,7 @@
 
 -behaviour(gen_server).
 
--export([start/2, set_last_update/1, get_reply/1, 
+-export([start/2, get_last_update_reply/1, get_reply/1, 
 		get_reply/2, process_reply/1, status/0, list/0, 
 		list_only/1, get_last_update/0, get_last_update/1, 
 		get_codestring/2, get_codestring/4, set_codestring/1, 
@@ -21,7 +21,7 @@
 -include_lib("stdlib/include/ms_transform.hrl").
 
 get_last_update() -> gen_server:cast(?MODULE, {get_last_update, tools:get_option(registry_url)}).
-set_last_update(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {set_last_update, Param}).
+get_last_update_reply(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {get_last_update_reply, Param}).
 get_codestring(Xml, Sign) -> gen_server:cast(?MODULE, {get_codestring, tools:get_option(registry_url), Xml, Sign}).
 set_codestring(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {set_codestring, Param}).
 
@@ -53,9 +53,9 @@ handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, las
           lastErrorDateTime := LastErrDt,  trycount := Try, lastArch := Arch, dumpVersion := DumpVer, childPid := ChildPid } = State) ->
 	R = [
 			{"XMLRequest", Xml}, {"XMLRequestSign", Sign}, {"dumpFormatVersion", DumpVer},
-			{"lastDumpDate",tools:ts2date(LastDump)}, {"NextAction", atom_to_list(FState)},
+			{"lastDumpDate",tools:ts2date(LastDump)}, {"NextAction", tools:to_list(FState)},
 			{"UpdateCounter", Update}, {"lastArchive", Arch}, 
-			{"LastError", tools:to_list(LastErr)}, {"lastErrorDateTime", LastErrDt},
+			{"LastError", tools:format(LastErr)}, {"lastErrorDateTime", LastErrDt},
 			{"CodeString", Code}, {"LastTryCount", Try}, {"LastChildPid", ChildPid}
 		],
 	{reply, R, State};
@@ -116,12 +116,12 @@ handle_cast({get_last_update, Url}, State) ->
 	P = spawn_link(?MODULE, get_last_update, [Url]),
 	{noreply, State#{fin_state := wait_last_update, childPid := P}}; 
 
-handle_cast({set_last_update, {error, E}}, #{trycount := Try} = State) ->
+handle_cast({get_last_update_reply, {error, E}}, #{trycount := Try} = State) ->
 	lager:debug("GetLastUpdate. Unexpected reply: ~p~n",[E]),
   {ok, _} = timer:apply_after(Try * 30000, ?MODULE, get_last_update, [tools:get_option(get_last_update_period)]),
   {noreply, State#{fin_state := get_last_update, trycount := Try + 1, lastError := E, lastErrorDateTime := tools:ts2date(tools:unix_ts())}};
 
-handle_cast({set_last_update, {Last, LastUrg}}, #{xml := Xml, sign := Sign, lastDumpDate := LastDump} = State) ->
+handle_cast({get_last_update_reply, {Last, LastUrg}}, #{xml := Xml, sign := Sign, lastDumpDate := LastDump} = State) ->
 	Ts = tools:unix_ts(),
 	if LastDump < LastUrg; Ts - LastDump > 43200 ->
 			lager:debug("LastUpdate: ~ts, LastRegDump: ~ts, LastRegUrgDump: ~ts~n",[tools:ts2date(LastDump),tools:ts2date(Last),tools:ts2date(LastUrg)]),
@@ -225,8 +225,8 @@ get_last_update(Time) when is_integer(Time) ->
 
 get_last_update(Url) ->
 	case blacklist:last_update(Url) of
-		{ok, Last, LastUrg} -> set_last_update({Last, LastUrg});
-		{error,E} -> set_last_update({error,E})
+		{ok, Last, LastUrg} -> get_last_update_reply({Last, LastUrg});
+		{error,E} -> get_last_update_reply({error,E})
 	end.
 
 get_codestring(Url, Xml, Sign, Ver) ->
