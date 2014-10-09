@@ -11,7 +11,7 @@
 		get_reply/2, process_reply/1, status/0, list/0, 
 		list_only/1, get_last_update/0, get_last_update/1, 
 		get_codestring/2, get_codestring/4, get_codestring_reply/1, 
-		clean_old/1, search/2]).
+		clean_old/1, search/2, get_last_update_worker/1]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
