@@ -10,7 +10,7 @@
 -export([start/2, get_last_update_reply/1, get_reply/1, 
 		get_reply/2, process_reply/1, status/0, list/0, 
 		list_only/1, get_last_update/0, get_last_update/1, 
-		get_codestring/2, get_codestring/4, set_codestring/1, 
+		get_codestring/2, get_codestring/4, get_codestring_reply/1, 
 		clean_old/1, search/2]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -23,7 +23,7 @@
 get_last_update() -> gen_server:cast(?MODULE, {get_last_update, tools:get_option(registry_url)}).
 get_last_update_reply(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {get_last_update_reply, Param}).
 get_codestring(Xml, Sign) -> gen_server:cast(?MODULE, {get_codestring, tools:get_option(registry_url), Xml, Sign}).
-set_codestring(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {set_codestring, Param}).
+get_codestring_reply(Param) when is_tuple(Param)  -> gen_server:cast(?MODULE, {get_codestring_reply, Param}).
 
 get_reply(Code) -> gen_server:cast(?MODULE, {get_reply, tools:get_option(registry_url), Code}).
 process_reply(Reply) -> gen_server:cast(?MODULE, {process_reply, Reply}).
@@ -137,17 +137,17 @@ handle_cast({get_codestring, Url, Xml, Sign}, #{dumpVersion := Ver} = State) ->
 	P = spawn_link(?MODULE, get_codestring, [Url, Xml, Sign, Ver]),
 	{noreply, State#{fin_state := wait_codestring, childPid := P}};
 
-handle_cast({set_codestring,{error, E}}, #{trycount := 10} = State) -> 
+handle_cast({get_codestring_reply,{error, E}}, #{trycount := 10} = State) -> 
 	lager:debug("GetCodestring. MaxTry reached. Last reply: ~tp~n",[E]),
 	get_last_update(tools:get_option(get_last_update_period)),
 	{noreply, State#{trycount := 1, lastError := E, fin_state := get_last_update, lastErrorDateTime := tools:ts2date(tools:unix_ts())}};
 
-handle_cast({set_codestring,{error, E}}, #{xml := Xml, sign := Sign, trycount := Try} = State) -> 
+handle_cast({get_codestring_reply,{error, E}}, #{xml := Xml, sign := Sign, trycount := Try} = State) -> 
 	lager:debug("Not success reply. Trycount: ~p , try later. Reply: ~tp~n",[Try, E]),
 	{ok, _} = timer:apply_after(Try * 5000, ?MODULE, get_codestring, [Xml, Sign]),
 	{noreply, State#{trycount := Try + 1, lastError := E, lastErrorDateTime := tools:ts2date(tools:unix_ts())}};
 
-handle_cast({set_codestring,{ok, Code}}, State) -> 
+handle_cast({get_codestring_reply,{ok, Code}}, State) -> 
 	lager:debug("Code: ~p Wait for registry.~n",[Code]),
 	{ok, _} = timer:apply_after(180000, ?MODULE, get_reply, [Code]), 
 	{noreply, State#{lastDumpDate := tools:unix_ts(), trycount := 1, codestring := Code, fin_state := get_reply}};
@@ -231,7 +231,7 @@ get_last_update(Url) ->
 
 get_codestring(Url, Xml, Sign, Ver) ->
 	Reply = blacklist:send_req(Url, Xml, Sign, Ver),
-	set_codestring(Reply).
+	get_codestring_reply(Reply).
 
 get_reply(Url, Id) ->
   case blacklist:get_reply(Url, Id, tools:get_option(data_store_path) ++ "arch/") of
