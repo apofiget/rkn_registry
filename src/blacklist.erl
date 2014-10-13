@@ -8,7 +8,7 @@
 -compile([{parse_transform, lager_transform}]).
 
 -export([load_xml/1, send_req/3, send_req/4, get_reply/3, last_update/1,
-		 export_to_csv/4, jnx_set_route/2, jnx_del_route/2]).
+		 export_to_csv/4, jnx_set_route/1, jnx_del_route/1]).
 
 %% @spec load_xml(F :: list()) -> {ok, DeepList} | {error, Reason}
 %%		DeepList = [Proplist]
@@ -34,15 +34,15 @@ export_to_csv(F,L,S,E) ->
 		{error,Reason} -> {error, Reason}
 	end. 
 
-%% @spec jnx_set_route(F :: list(), L :: list()) -> {ok, List} | {error, reason}
-%% @doc Make Juniper config to file F with set route commands.
+%% @spec jnx_set_route(F :: list(), L :: list()) -> List
+%% @doc Make Juniper config with set route commands.
 %% @end
-jnx_set_route(F, L) -> jnx_route("set", F, L).
+jnx_set_route(L) -> make_jnx_route_list("set", L, []).
 
-%% @spec jnx_del_route(F :: list(), L :: list()) -> {ok, List} | {error, reason}
-%% @doc Make Juniper config to file F with delete route commands.
+%% @spec jnx_del_route(F :: list(), L :: list()) -> List
+%% @doc Make Juniper config with delete route commands.
 %% @end
-jnx_del_route(F, L) -> jnx_route("delete", F, L).
+jnx_del_route(L) -> make_jnx_route_list("delete", L, []).
 
 %% @spec send_req(Rf :: list(), Sf :: list(), Ver :: list()) -> {ok, ReqId} | {error, Error}
 %%		ReqId = list()
@@ -187,17 +187,7 @@ arch_name() ->
     lists:flatten(io_lib:format('~4..0b-~2..0b-~2..0b-~2..0b-~2..0b.zip',[Y, M, D, H, Mm])).
 
 %% @hidden
-jnx_route(Prefix, File, L) ->
-	case file:open(File, [write]) of
-		{ok, Dev} -> make_jnx_route_list(Prefix, Dev, L);
-		{error, Reason} -> {error, Reason}
-	end. 
-%% @hidden
-make_jnx_route_list(_Prefix, Dev, []) -> file:close(Dev);
-
-make_jnx_route_list(Prefix, Dev, [H|T]) ->
+make_jnx_route_list(_Prefix, [], Acc) -> Acc;
+make_jnx_route_list(Prefix, [H|T], Acc) ->
 	Str = Prefix ++ " static route " ++ binary_to_list(H) ++ "/32 discard\n",
-	case file:write(Dev, list_to_binary(Str)) of
-		ok -> make_jnx_route_list(Prefix, Dev, T);
-		{error, Reason} -> {error, Reason}
-	end.
+	make_jnx_route_list(Prefix, T, Acc ++ Str).

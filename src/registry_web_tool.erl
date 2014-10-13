@@ -24,7 +24,7 @@ act(Act, Args) ->
 		_-> fun() -> handle_act(Act) end
 	end,
 	try Fn()	
-		catch _:X -> 
+		catch _:_ -> 
 			lager:error("Runtime error. Stacktrace: ~p~n",[erlang:get_stacktrace()]),
 			prep("error","Ошибка исполнения") end.
 
