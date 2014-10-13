@@ -38,32 +38,32 @@ export_to_csv(F,L,S,E) ->
 %% @spec jnx_set_route(L :: list()) -> List
 %% @doc Make Juniper config with set route commands.
 %% @end
-jnx_set_route(L) -> make_jnx_route_list("set", L, []).
+jnx_set_route(L) -> make_jnx_route_list("set", L).
 
 %% @spec jnx_del_route(L :: list()) -> List
 %% @doc Make Juniper config with delete route commands.
 %% @end
-jnx_del_route(L) -> make_jnx_route_list("delete", L, []).
+jnx_del_route(L) -> make_jnx_route_list("delete", L).
 
 %% @spec csc_set_route(L :: list()) -> List
 %% @doc Make Cisco config with ip route commands in global route table.
 %% @end
-csc_set_route(L) -> make_csc_route_list("", "", L, []).
+csc_set_route(L) -> make_csc_route_list("", "", L).
 
 %% @spec csc_del_route(L :: list()) -> List
 %% @doc Make Cisco config with no ip route commands in global route table.
 %% @end
-csc_del_route(L) -> make_csc_route_list("no ", "", L, []).
+csc_del_route(L) -> make_csc_route_list("no ", "", L).
 
 %% @spec csc_set_route(L :: list(), V :: list()) -> List
 %% @doc Make Cisco config with ip route commands in V routing table.
 %% @end
-csc_set_route(L, V) -> make_csc_route_list("", " vrf " ++ V, L, []).
+csc_set_route(L, V) -> make_csc_route_list("", " vrf " ++ V, L).
 
 %% @spec csc_del_route(L :: list()) -> List
 %% @doc Make Cisco config with no ip route commands in V routing table.
 %% @end
-csc_del_route(L, V) -> make_csc_route_list("no ", " vrf " ++ V, L, []).
+csc_del_route(L, V) -> make_csc_route_list("no ", " vrf " ++ V, L).
 
 %% @spec send_req(Rf :: list(), Sf :: list(), Ver :: list()) -> {ok, ReqId} | {error, Error}
 %%		ReqId = list()
@@ -208,13 +208,9 @@ arch_name() ->
     lists:flatten(io_lib:format('~4..0b-~2..0b-~2..0b-~2..0b-~2..0b.zip',[Y, M, D, H, Mm])).
 
 %% @hidden
-make_jnx_route_list(_Prefix, [], Acc) -> Acc;
-make_jnx_route_list(Prefix, [H|T], Acc) ->
-	Str = Prefix ++ " static route " ++ binary_to_list(H) ++ "/32 discard\n",
-	make_jnx_route_list(Prefix, T, Acc ++ Str).
+make_jnx_route_list(Prefix, L) ->
+	lists:foldl(fun(E, Acc) -> lists:append(Acc, Prefix ++ " static route " ++ E ++ "/32 discard\n") end, [], L).
 
 %% @hidden
-make_csc_route_list(Prefix, Table, [], Acc) -> Acc;
-make_csc_route_list(Prefix, Table, [H|T], Acc) -> 
-Str = Prefix ++ "ip route" ++ Table ++ binary_to_list(H) ++ " 255.255.255.255 Null 0\n",
-	make_csc_route_list(Prefix, Table, T, Acc ++ Str).
+make_csc_route_list(Prefix, Table, L) -> 
+	lists:foldl(fun(E,Acc) -> lists:append(Acc, Prefix ++ "ip route" ++ Table ++ " " ++ E ++ " 255.255.255.255 Null 0\n") end, [], L).
