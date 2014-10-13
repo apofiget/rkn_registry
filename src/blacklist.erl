@@ -8,7 +8,8 @@
 -compile([{parse_transform, lager_transform}]).
 
 -export([load_xml/1, send_req/3, send_req/4, get_reply/3, last_update/1,
-		 export_to_csv/4, jnx_set_route/1, jnx_del_route/1]).
+		 export_to_csv/4, jnx_set_route/1, jnx_del_route/1, csc_set_route/1, 
+		 csc_set_route/2, csc_del_route/1, csc_del_route/2]).
 
 %% @spec load_xml(F :: list()) -> {ok, DeepList} | {error, Reason}
 %%		DeepList = [Proplist]
@@ -34,15 +35,35 @@ export_to_csv(F,L,S,E) ->
 		{error,Reason} -> {error, Reason}
 	end. 
 
-%% @spec jnx_set_route(F :: list(), L :: list()) -> List
+%% @spec jnx_set_route(L :: list()) -> List
 %% @doc Make Juniper config with set route commands.
 %% @end
 jnx_set_route(L) -> make_jnx_route_list("set", L, []).
 
-%% @spec jnx_del_route(F :: list(), L :: list()) -> List
+%% @spec jnx_del_route(L :: list()) -> List
 %% @doc Make Juniper config with delete route commands.
 %% @end
 jnx_del_route(L) -> make_jnx_route_list("delete", L, []).
+
+%% @spec csc_set_route(L :: list()) -> List
+%% @doc Make Cisco config with ip route commands in global route table.
+%% @end
+csc_set_route(L) -> make_csc_route_list("", "", L, []).
+
+%% @spec csc_del_route(L :: list()) -> List
+%% @doc Make Cisco config with no ip route commands in global route table.
+%% @end
+csc_del_route(L) -> make_csc_route_list("no ", "", L, []).
+
+%% @spec csc_set_route(L :: list(), V :: list()) -> List
+%% @doc Make Cisco config with ip route commands in V routing table.
+%% @end
+csc_set_route(L, V) -> make_csc_route_list("", " vrf " ++ V, L, []).
+
+%% @spec csc_del_route(L :: list()) -> List
+%% @doc Make Cisco config with no ip route commands in V routing table.
+%% @end
+csc_del_route(L, V) -> make_csc_route_list("no ", " vrf " ++ V, L, []).
 
 %% @spec send_req(Rf :: list(), Sf :: list(), Ver :: list()) -> {ok, ReqId} | {error, Error}
 %%		ReqId = list()
@@ -191,3 +212,9 @@ make_jnx_route_list(_Prefix, [], Acc) -> Acc;
 make_jnx_route_list(Prefix, [H|T], Acc) ->
 	Str = Prefix ++ " static route " ++ binary_to_list(H) ++ "/32 discard\n",
 	make_jnx_route_list(Prefix, T, Acc ++ Str).
+
+%% @hidden
+make_csc_route_list(Prefix, Table, [], Acc) -> Acc;
+make_csc_route_list(Prefix, Table, [H|T], Acc) -> 
+Str = Prefix ++ "ip route" ++ Table ++ binary_to_list(H) ++ " 255.255.255.255 Null 0\n",
+	make_csc_route_list(Prefix, Table, T, Acc ++ Str).
