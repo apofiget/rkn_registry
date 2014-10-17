@@ -21,17 +21,15 @@ act(Act, Args) ->
 				[_,_] -> 
 					fun() -> prep("error", "Отсутствуют необходимые аргументы") end
 			end;
-		_-> fun() -> handle_act(Act) end
+		_-> fun() -> handle_act(Act, Args) end
 	end,
-	try Fn()	
+	try Fn()
 		catch _:_ -> 
 			lager:error("Runtime error. Stacktrace: ~p~n",[erlang:get_stacktrace()]),
 			prep("error","Ошибка исполнения") end.
 
 %%% Internals
-handle_act(status) -> prep("ok",json2:obj_from_list(registry:status()));
-
-handle_act(_) -> prep("error","Unknown function").
+handle_act(status, _) -> prep("ok",json2:obj_from_list(registry:status()));
 
 handle_act(list, Fn) ->
 	case Fn() of
@@ -52,6 +50,17 @@ handle_act(list_only, Crt) ->
 	case registry:list_only(Crt) of
 		[] -> prep("ok",[]);
 		List -> prep("ok",[json2:encode(El) || El <- List ])
-	end.
+	end;
+
+handle_act(dump_route, Args) ->
+	lists:concat(case proplists:get_value("spec", Args) of
+		undefined -> "";
+		F -> case  proplists:get_value("table", Args) of
+					undefined -> apply(blacklist, list_to_atom(F), [registry:list_only(ip)]);
+					T -> apply(blacklist, list_to_atom(F), [registry:list_only(ip), T])
+				end
+	end);
+
+handle_act(_,_) -> prep("error","Unknown function").
 
 prep(Status, Data) -> json2:encode(json2:obj_from_list([{"status", Status}, {"data",  Data}])).

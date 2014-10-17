@@ -5,6 +5,7 @@
 			dump_last_csv -> {redirect_local, "/last_dump.yaws?type=csv"};
 			dump_last_zip -> {redirect_local, "/last_dump.yaws?type=zip"};
 			dump_last_xml -> {redirect_local, "/last_dump.yaws?type=xml"};
+			dump_route -> {content, "text/plain; charset=utf-8", registry_web_tool:act(dump_route, Params)};
 			Act -> {content, "application/json; charset=utf-8", registry_web_tool:act(Act, Params)}
 		end.
 </erl>

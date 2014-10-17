@@ -63,7 +63,10 @@
 	* act=dump_last_zip - получение последнего скачанного архива
 	* act=dump_last_csv - получение последнего CSV дампа
 	* act=dump_last_xml - получение последнего XML файла с реестром
-Пример запроса: http://localhost:8899/data.yaws?act=list&field=domain&value=www.ru
+	* act=dump_route, spec = [jnx_set_route | jnx_del_route | [csc_set_route | csc_del_route , [table = VRF_Name]]] - получение конфигурации роутеров Juniper и Cisco, для блокирования IP адресов ресурсов из реестра, путем установки роутов в Null. Для роутеров Cisco можно указать название VRF, если требуется установить роуты не в глобальную таблицу.
+Пример запроса: 
+http://localhost:8899/data.yaws?act=list&field=domain&value=www.ru
+http://localhost:8899/data.yaws?act=dump_route&spec=csc_set_route&table=Inet
 
 ** Запуск из Erlang REPL
    Запуск сервера:
@@ -82,14 +85,18 @@
    #+BEGIN_EXAMPLE Erlang
     registry:status().
 
-    [{"XMLRequest","priv/request.xml"},
-     {"XMLRequestSign","priv/request.bin"},
-     {"lastDumpDate","16-May-2014, 06:04"},
-     {"NextAction","send_req"},
-     {"UpdateCounter",2},
-     {"LastError",[]},
+    [{"XMLRequest","/etc/rkn_registry/request.xml"},
+     {"XMLRequestSign","/etc/rkn_registry/request.bin"},
+     {"dumpFormatVersion","2.0"},
+     {"lastDumpDate","17-Oct-2014, 11:39"},
+     {"NextAction","get_last_update"},
+     {"UpdateCounter",1},
+     {"lastArchive", "/var/opt/rkn_registry/cache/arch/2014-10-17-11-42.zip"},
+     {"LastError","[]"},
+     {"lastErrorDateTime",[]},
      {"CodeString",[]},
-     {"LastTryCount",1}]
+     {"LastTryCount",1},
+     {"LastChildPid",[]}]
    #+END_EXAMPLE
 
 ** Запуск готового релиза

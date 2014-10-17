@@ -35,32 +35,32 @@ export_to_csv(F,L,S,E) ->
 		{error,Reason} -> {error, Reason}
 	end. 
 
-%% @spec jnx_set_route(L :: list()) -> List
+%% @spec jnx_set_route(L :: list()) -> [List]
 %% @doc Make Juniper config with set route commands.
 %% @end
 jnx_set_route(L) -> make_jnx_route_list("set", L).
 
-%% @spec jnx_del_route(L :: list()) -> List
+%% @spec jnx_del_route(L :: list()) -> [List]
 %% @doc Make Juniper config with delete route commands.
 %% @end
 jnx_del_route(L) -> make_jnx_route_list("delete", L).
 
-%% @spec csc_set_route(L :: list()) -> List
+%% @spec csc_set_route(L :: list()) -> [List]
 %% @doc Make Cisco config with ip route commands in global route table.
 %% @end
 csc_set_route(L) -> make_csc_route_list("", "", L).
 
-%% @spec csc_del_route(L :: list()) -> List
+%% @spec csc_del_route(L :: list()) -> [List]
 %% @doc Make Cisco config with no ip route commands in global route table.
 %% @end
 csc_del_route(L) -> make_csc_route_list("no ", "", L).
 
-%% @spec csc_set_route(L :: list(), V :: list()) -> List
+%% @spec csc_set_route(L :: list(), V :: list()) -> [List]
 %% @doc Make Cisco config with ip route commands in V routing table.
 %% @end
 csc_set_route(L, V) -> make_csc_route_list("", " vrf " ++ V, L).
 
-%% @spec csc_del_route(L :: list()) -> List
+%% @spec csc_del_route(L :: list()) -> [List]
 %% @doc Make Cisco config with no ip route commands in V routing table.
 %% @end
 csc_del_route(L, V) -> make_csc_route_list("no ", " vrf " ++ V, L).
@@ -209,8 +209,8 @@ arch_name() ->
 
 %% @hidden
 make_jnx_route_list(Prefix, L) ->
-	lists:foldl(fun(E, Acc) -> lists:append(Acc, Prefix ++ " static route " ++ E ++ "/32 discard\n") end, [], L).
+	lists:foldl(fun(E, Acc) -> lists:append(Acc, [Prefix ++ " static route " ++ E ++ "/32 discard\n"]) end, [], L).
 
 %% @hidden
 make_csc_route_list(Prefix, Table, L) -> 
-	lists:foldl(fun(E,Acc) -> lists:append(Acc, Prefix ++ "ip route" ++ Table ++ " " ++ E ++ " 255.255.255.255 Null 0\n") end, [], L).
+	lists:foldl(fun(E,Acc) -> lists:append(Acc, [Prefix ++ "ip route" ++ Table ++ " " ++ E ++ " 255.255.255.255 Null 0\n"]) end, [], L).
