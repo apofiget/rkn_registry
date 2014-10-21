@@ -48,14 +48,14 @@ init([Xml, Sign]) ->
     {ok, #{xml => Xml, sign => Sign, table => Tid, lastDumpDate => 0, codestring => "", 
     	   update_count => 0, trycount => 1, lastError => "", fin_state => send_req, trace => Trace, 
     	   lastArch => "", dumpVersion => tools:get_option(dump_format_ver),
-    	   lastErrorDateTime => "", childPid => "", timer => TRef}}.
+    	   lastErrorDateTime => "", childPid => "", timer => TRef, lastCheck => ""}}.
 
 handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, fin_state := FState, lastError := LastErr, 
-          lastErrorDateTime := LastErrDt,  trycount := Try, lastArch := Arch, dumpVersion := DumpVer, childPid := ChildPid } = State) ->
+          lastErrorDateTime := LastErrDt,  trycount := Try, lastArch := Arch, dumpVersion := DumpVer, childPid := ChildPid, lastCheck := LastCheck } = State) ->
 	R = [
 			{"XMLRequest", Xml}, {"XMLRequestSign", Sign}, {"dumpFormatVersion", DumpVer},
-			{"lastDumpDate",tools:ts2date(LastDump)}, {"NextAction", tools:to_list(FState)},
-			{"UpdateCounter", Update}, {"lastArchive", Arch}, 
+			{"lastDumpDate",tools:ts2date(LastDump)}, {"lastCheck", LastCheck},
+			{"NextAction", tools:to_list(FState)}, {"UpdateCounter", Update}, {"lastArchive", Arch}, 
 			{"LastError", tools:format(LastErr)}, {"lastErrorDateTime", LastErrDt},
 			{"CodeString", Code}, {"LastTryCount", Try}, {"LastChildPid", ChildPid}
 		],
@@ -124,18 +124,18 @@ handle_cast({get_last_update, Url}, State) ->
 handle_cast({get_last_update_reply, {error, E}}, #{trycount := Try} = State) ->
 	lager:debug("GetLastUpdate. Unexpected reply: ~p~n",[E]),
 	{ok, TRef} = timer:apply_after(Try * 30000, ?MODULE, get_last_update, [tools:get_option(get_last_update_period)]),
-	{noreply, State#{fin_state := get_last_update, trycount := Try + 1, lastError := E, lastErrorDateTime := tools:ts2date(tools:unix_ts()), timer := TRef}};
+	{noreply, State#{fin_state := get_last_update, trycount := Try + 1, lastCheck := tools:ts2date(tools:unix_ts()), lastError := E, lastErrorDateTime := tools:ts2date(tools:unix_ts()), timer := TRef}};
 
 handle_cast({get_last_update_reply, {Last, LastUrg}}, #{xml := Xml, sign := Sign, lastDumpDate := LastDump} = State) ->
 	Ts = tools:unix_ts(),
 	if LastDump < LastUrg; Ts - LastDump > 43200 ->
 			lager:debug("LastUpdate: ~ts, LastRegDump: ~ts, LastRegUrgDump: ~ts~n",[tools:ts2date(LastDump),tools:ts2date(Last),tools:ts2date(LastUrg)]),
 			get_codestring(Xml, Sign),
-			{noreply, State#{fin_state := get_codestring}};
+			{noreply, State#{fin_state := get_codestring, lastCheck := tools:ts2date(tools:unix_ts())}};
 		true -> 
 			lager:debug("Nothing to update"),
 			get_last_update(tools:get_option(get_last_update_period)),
-			{noreply, State#{fin_state := get_last_update}}
+			{noreply, State#{fin_state := get_last_update, lastCheck := tools:ts2date(tools:unix_ts())}}
 	end;
 
 handle_cast({get_codestring, Url, Xml, Sign}, #{dumpVersion := Ver} = State) ->
