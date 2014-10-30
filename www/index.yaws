@@ -1,4 +1,4 @@
 <erl>
-	out(_Args) -> 
-		{redirect_local, "/data.yaws?act=status"}.
+  out(_Args) -> 
+    {redirect_local, "/data.yaws?act=status"}.
 </erl>

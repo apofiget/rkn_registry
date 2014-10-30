@@ -2,29 +2,29 @@
 
 -include("include/registry.hrl").
 
-	out(Arg) ->
-	Params = yaws_api:parse_query(Arg),
-	{Mime, Content} = case list_to_atom(proplists:get_value("type", Params, "undefined")) of
-		zip ->
-			Cont = case proplists:get_value("lastArchive", registry:status()) of
-				"" -> [];
-				F -> read_cont(F)
-			end, 
-			{"application/zip", Cont};
-		xml -> {"application/xml", read_cont(tools:get_option(data_store_path) ++ "dump.xml")};
-		_ -> 
-			Cont = case tools:get_option(dump_csv) of
-				true -> read_cont(tools:get_option(data_store_path) ++ "dump.csv");
-				_ -> []
-			end, 
-			{"text/csv", Cont}
-	end, 
-	{content, Mime, Content}.
+  out(Arg) ->
+  Params = yaws_api:parse_query(Arg),
+  {Mime, Content} = case list_to_atom(proplists:get_value("type", Params, "undefined")) of
+    zip ->
+      Cont = case proplists:get_value("lastArchive", registry:status()) of
+        "" -> [];
+        F -> read_cont(F)
+      end, 
+      {"application/zip", Cont};
+    xml -> {"application/xml", read_cont(tools:get_option(data_store_path) ++ "dump.xml")};
+    _ -> 
+      Cont = case tools:get_option(dump_csv) of
+        true -> read_cont(tools:get_option(data_store_path) ++ "dump.csv");
+        _ -> []
+      end, 
+      {"text/csv", Cont}
+  end, 
+  {content, Mime, Content}.
 
 
 read_cont(F) -> 
-	case file:read_file(F) of
-		{ok, Binary} -> binary_to_list(Binary);
-		_-> [] 
-	end. 
+  case file:read_file(F) of
+    {ok, Binary} -> binary_to_list(Binary);
+    _-> [] 
+  end. 
 </erl>
