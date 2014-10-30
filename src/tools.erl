@@ -4,7 +4,7 @@
 -author("Andrey Andruschenko <apofiget@gmail.com>").
 
 -export([get_option/1, get_reg_type/1, format/1,
-  ts2date/1, unix_ts/0, to_list/1, get_result_comment/1]).
+  ts2date/1, unix_ts/0, to_list/1, get_result_comment/1, make_envelope/3]).
 
 -include("include/registry.hrl").
 
@@ -36,4 +36,12 @@ to_list(Term) when is_binary(Term) ->
     {error, _L, _R} -> Term;
     {incomplete, L, _B} -> L;
     L -> L
-  end.  
+  end.
+
+make_envelope(From, ListT, Body) ->
+  lists:foldl(fun(E, Acc) -> 
+    [[{email, proplists:get_value(email, E, "none@localhost")},
+      {message, lists:concat(["Subject: ", proplists:get_value(subject, E, "undefined"), "\r\n", 
+                 "From: ", From, "\r\n", "To: ", proplists:get_value(email, E, "undefined"), "\r\n\r\n",
+                 proplists:get_value(body_prefix, E, ""), Body, proplists:get_value(body_suffix, E, "")])}] | Acc]
+    end, [], ListT).
