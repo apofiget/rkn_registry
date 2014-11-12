@@ -26,7 +26,11 @@ unix_ts() ->
     {Mega, Seconds, _} = erlang:now(),
     Mega * 1000000 + Seconds.
 
-format(Term) -> unicode:characters_to_list(io_lib:format("~p", [Term]) ). 
+format(Term) when is_binary(Term) ->  unicode:characters_to_list(io_lib:format("~ts", [Term]));
+format(Term) when is_tuple(Term) -> format(tuple_to_list(Term));
+format(Term) when is_atom(Term) -> format(atom_to_list(Term)); 
+format(Term) when is_list(Term)  -> io_lib:format("~tp", [Term]);
+format(Term) -> Term.
 
 to_list(Term) when is_list(Term) -> Term;
 to_list(Term) when is_atom(Term) -> atom_to_list(Term); 

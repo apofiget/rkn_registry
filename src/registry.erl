@@ -162,12 +162,12 @@ handle_cast({get_reply, Url, Id}, State) ->
   {noreply, State#{fin_state := wait_for_reply, childPid := P}}; 
 
 handle_cast({process_reply, {error,ErrCode}},#{trycount := 10, codestring := Code} = State) when is_integer(ErrCode) ->
-  lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~tp~n",[Code, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
+  lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~ts~n",[Code, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
   get_last_update(tools:get_option(get_last_update_period)),
   {noreply, State#{fin_state := get_last_update, trycount := 1, codestring := "", lastError := tools:get_result_comment(ErrCode), lastErrorDateTime := tools:ts2date(tools:unix_ts())}};
 
 handle_cast({process_reply, {error,ErrCode}},#{trycount := Try, codestring := Code} = State) when is_integer(ErrCode) ->
-  lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~tp~n",[Code, Try, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
+  lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~ts~n",[Code, Try, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
   {ok, TRef} = timer:apply_after(Try * 5000, ?MODULE, get_reply, [Code]),
   {noreply, State#{trycount := Try + 1, codestring := Code, lastError := tools:get_result_comment(ErrCode), lastErrorDateTime := tools:ts2date(tools:unix_ts()), timer := TRef}};
 
@@ -251,7 +251,7 @@ extract_arch(File, Ver) ->
 
 send_notify(false, _) -> ok;
 send_notify([], _) -> ok;
-send_notify(Env, Body) when is_list(Env) ->
+send_notify(Env, Body) ->
   Msg = tools:make_envelope(proplists:get_value(from, Env), proplists:get_value(to, Env), Body),
   [gen_smtp_client:send({proplists:get_value(from, Env), [proplists:get_value(email, E)], 
             proplists:get_value(message, E)},proplists:get_value(server_opts, Env)) || E <- Msg].
