@@ -169,6 +169,7 @@ normalize_proplist(E) ->
      {date, proplists:get_value(date, E)},
      {domain, proplists:get_value(domain, E)},
      {subnet, proplists:get_value(ipSubnet, E)},
+     {blockType, proplists:get_value(blockType, E, "default")},
      {ip, proplists:get_all_values(ip, E)}].
 
 %% @hidden
