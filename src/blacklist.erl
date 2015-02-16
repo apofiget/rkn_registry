@@ -76,7 +76,7 @@ send_req(Url, Rf, Sf, Ver) ->
     {ok, Sfl} = file:read_file(Sf),
     try yaws_soap_lib:call(Url, "sendRequest", [base64:encode(Rfl),base64:encode(Sfl), Ver]) of
         {ok,_,[{'p:sendRequestResponse',_,true,_,Id}]} -> {ok, Id};
-        {ok,_,[{'p:sendRequestResponse',_,false,Comment,_}]} -> {error, win_to_utf(Comment)};
+        {ok,_,[{'p:sendRequestResponse',_,false,Comment,_}]} -> {error, list_to_binary(Comment)};
         E -> {error, E}
     catch _:X -> {error, X}
     end.
