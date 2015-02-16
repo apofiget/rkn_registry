@@ -122,7 +122,7 @@ handle_cast({get_last_update, Url}, State) ->
     {noreply, State#{fin_state := wait_last_update, childPid := P}};
 
 handle_cast({get_last_update_reply, {error, E}}, #{trycount := Try} = State) ->
-    lager:debug("GetLastUpdate. Unexpected reply: ~p~n",[E]),
+    lager:debug("GetLastUpdate. Unexpected reply: ~tp~n",[E]),
     {ok, TRef} = timer:apply_after(Try * 30000, ?MODULE, get_last_update, [tools:get_option(get_last_update_period)]),
     {noreply, State#{fin_state := get_last_update, trycount := Try + 1, lastCheck := tools:ts2date(tools:unix_ts()), lastError := E, lastErrorDateTime := tools:ts2date(tools:unix_ts()), timer := TRef}};
 
