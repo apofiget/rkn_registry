@@ -21,9 +21,10 @@
     * port - порт , который будет слушать web сервер, к примеру 8899
     * listen_on - IPv4 адрес который будет слушать web сервер, к примеру 127.0.0.1
     * hostname - имя виртуального хоста
+    * email_on_update - необязательный набор параметров. Необходим, если вы хотите получить уведомелние на e-mail после обновления реестра. Пример настройки отправки уведомлений находится ниже.
     * dump_csv - делать дамп в csv при обновлении реестра, true или false
     * csv_separator - разделитель полей для CSV, к примеру ";"
-    * csv_fields - имена полей которые будут присутствовать в дампе. 
+    * csv_fields - имена полей которые будут присутствовать в дампе.
   
 *** Наименования и значения полей для формирования CSV дампа
 	 * id - идентификатор записи в реестре
@@ -39,6 +40,20 @@
   [id,decision,url,domain,ip]
   #+END_EXAMPLE
   Порядок следования полей в файле, будет таким же как порядок имен полей в конфигурации.
+
+*** Пример настройки отправки уведомлений на e-mail
+#+BEGIN_EXAMPLE Erlang
+    {email_on_update,                                                                                                             
+      [                                                         
+       {server_opts, [{relay, "relay.mail.ru"}, {tls, never},  {username, "user@mail.ru"}, {password, PasWWoord"},{auth, always}]},
+       {from, "user@mail.ru"},
+       {to,[
+            [{email, "recipient1@mail.ru"}, {subject, "Registry update"}, {body_prefix, ""}, {body_suffix, ""}],
+            [{email, "recipient2@mail.ru"}, {subject, "Registry update"}, {body_prefix, ""}, {body_suffix, ""}]
+           ]}
+      ]
+    }
+#+END_EXAMPLE
 
 ** Запуск приложения
    #+BEGIN_EXAMPLE Shell

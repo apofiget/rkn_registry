@@ -11,7 +11,7 @@
          get_reply/2, process_reply/1, status/0, list/0,
          list_only/1, get_last_update/0, get_last_update/1,
          get_codestring/2, get_codestring/4, get_codestring_reply/1,
-         clean_old/1, search/2, get_last_update_worker/1]).
+         clean_old/1, search/2, get_last_update_worker/1, send_notify/2]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -162,12 +162,12 @@ handle_cast({get_reply, Url, Id}, State) ->
     {noreply, State#{fin_state := wait_for_reply, childPid := P}};
 
 handle_cast({process_reply, {error,ErrCode}},#{trycount := 10, codestring := Code} = State) when is_integer(ErrCode) ->
-    lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~tp~n",[Code, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
+    lager:debug("GetReply. Codestring: ~p, MaxTry reached. Last reply: ~ts~n",[Code, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
     get_last_update(tools:get_option(get_last_update_period)),
     {noreply, State#{fin_state := get_last_update, trycount := 1, codestring := "", lastError := tools:get_result_comment(ErrCode), lastErrorDateTime := tools:ts2date(tools:unix_ts())}};
 
 handle_cast({process_reply, {error,ErrCode}},#{trycount := Try, codestring := Code} = State) when is_integer(ErrCode) ->
-    lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~tp~n",[Code, Try, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
+    lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~ts~n",[Code, Try, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
     {ok, TRef} = timer:apply_after(Try * 5000, ?MODULE, get_reply, [Code]),
     {noreply, State#{trycount := Try + 1, codestring := Code, lastError := tools:get_result_comment(ErrCode), lastErrorDateTime := tools:ts2date(tools:unix_ts()), timer := TRef}};
 
@@ -192,6 +192,7 @@ handle_cast({process_reply, {ok, File, Arch, _Ver}},#{codestring := Code, table 
                true -> ok
             end,
             Ts = tools:unix_ts(),
+            spawn(?MODULE, send_notify, [tools:get_option(email_on_update), "RKN registry updates. Has " ++ integer_to_list(length(List)) ++ " records now."]),
             lists:map(fun(E) ->
                               ets:insert(Tid, {erlang:phash2(tools:to_list(proplists:get_value(url, E)) ++ tools:to_list(proplists:get_value(ip, E))), {Ts, E}})
                       end, List),
@@ -248,3 +249,10 @@ extract_arch(File, Ver) ->
         {ok, Xml} -> {ok, Xml, File, Ver};
         {error, R} -> {error, tools:to_list(R)}
     end.
+
+send_notify(false, _) -> ok;
+send_notify([], _) -> ok;
+send_notify(Env, Body) ->
+    Msg = tools:make_envelope(proplists:get_value(from, Env), proplists:get_value(to, Env), Body),
+    [gen_smtp_client:send({proplists:get_value(from, Env), [proplists:get_value(email, E)],
+                           proplists:get_value(message, E)},proplists:get_value(server_opts, Env)) || E <- Msg].
