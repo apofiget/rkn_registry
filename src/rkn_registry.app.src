@@ -1,7 +1,7 @@
 {application, rkn_registry,
  [
   {description, "Load russian government registry for URL blocking."},
-  {vsn, "0.8.4oe"},
+  {vsn, "0.8.5"},
   {registered, [registry]},
   {modules,[
    blacklist,
