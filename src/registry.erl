@@ -230,7 +230,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 get_last_update_worker(Url) ->
     case blacklist:last_update(Url) of
-        {ok, Last, LastUrg} -> get_last_update_reply({Last, LastUrg});
+        {ok, Last, LastUrg, _DumpFormatVer, _DocVer} -> get_last_update_reply({Last, LastUrg});
         {error,E} -> get_last_update_reply({error,E})
     end.
 

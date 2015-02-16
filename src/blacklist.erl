@@ -102,7 +102,7 @@ get_reply(Url,Id, SavePath) ->
     catch _:X -> {error, X}
     end.
 
-%% @spec last_update(Url :: list()) -> {ok, TimeStamp, UrgentTimeStamp} | {error, error}
+%% @spec last_update(Url :: list()) -> {ok, TimeStamp, UrgentTimeStamp, DumpFormatVersion, DocVersion} | {error, error}
 %% @doc Get registry last update timestamp.
 %% @end
 last_update(Url) ->
@@ -111,8 +111,8 @@ last_update(Url) ->
          [{'p:getLastDumpDateExResponse',_,LastDumpMs,LastDumpUrgMs}]} ->
             {ok, list_to_integer(LastDumpMs) div 1000, list_to_integer(LastDumpUrgMs) div 1000};
         {ok,_,
-         [{'p:getLastDumpDateExResponse',_,LastDumpMs,LastDumpUrgMs, _WebServVer, _DumpFormatVer, _DocVer}]} ->
-            {ok, list_to_integer(LastDumpMs) div 1000, list_to_integer(LastDumpUrgMs) div 1000};
+         [{'p:getLastDumpDateExResponse',_,LastDumpMs,LastDumpUrgMs, _WebServVer, DumpFormatVer, DocVer}]} ->
+            {ok, list_to_integer(LastDumpMs) div 1000, list_to_integer(LastDumpUrgMs) div 1000, DumpFormatVer, DocVer};
         E -> {error, E}
     catch _:X -> {error, X}
     end.
