@@ -35,6 +35,7 @@
 	 * domain - доменное имя
 	 * decision - организациия принявшая решение о включении ресурса в реестр, а так же дата принятия решения
 	 * url - URL ресурса
+	 * blockType - тип блокировки: default - по умолчанию, domain - блокировка всего домена
   Пример: 
   #+BEGIN_EXAMPLE Shell
   [id,decision,url,domain,ip]
