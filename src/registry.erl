@@ -142,14 +142,14 @@ handle_cast({get_codestring, Url, Xml, Sign}, #{dumpVersion := Ver} = State) ->
     P = spawn_link(?MODULE, get_codestring, [Url, Xml, Sign, Ver]),
     {noreply, State#{fin_state := wait_codestring, childPid := P}};
 
-handle_cast({get_codestring_reply,{error, E}}, #{trycount := 10} = State) ->
+handle_cast({get_codestring_reply,{error, E}}, #{trycount := 30} = State) ->
     lager:debug("GetCodestring. MaxTry reached. Last reply: ~tp~n",[E]),
     get_last_update(tools:get_option(get_last_update_period)),
     {noreply, State#{trycount := 1, lastError := E, fin_state := get_last_update, lastErrorDateTime := tools:ts2date(tools:unix_ts())}};
 
 handle_cast({get_codestring_reply,{error, E}}, #{xml := Xml, sign := Sign, trycount := Try} = State) ->
     lager:debug("Not success reply. Trycount: ~p , try later. Reply: ~tp~n",[Try, E]),
-    {ok, TRef} = timer:apply_after(Try * 5000, ?MODULE, get_codestring, [Xml, Sign]),
+    {ok, TRef} = timer:apply_after(Try * tools:get_option(get_registry_try_interval) * 1000, ?MODULE, get_codestring, [Xml, Sign]),
     {noreply, State#{trycount := Try + 1, lastError := E, lastErrorDateTime := tools:ts2date(tools:unix_ts()), timer := TRef}};
 
 handle_cast({get_codestring_reply,{ok, Code}}, State) ->
