@@ -14,7 +14,7 @@
     * get_last_update_period - периодичность проверки актуальности реестра, в секундах
     * xml - путь до файла с XML запросом, по-умолчанию "/etc/rkn_registry/request.xml"
     * sign - путь до файла с подписью запроса, по-умолчанию "/etc/rkn_registry/request.bin"
-    * www_log_path - путь до каталога содеражащего журналы web сервера, по-умолчанию "/var/log/rkn_registry/www/"
+    * www_log_path - путь до каталога содержащего журналы web сервера, по-умолчанию "/var/log/rkn_registry/www/"
     * www_root - путь до корневого каталога web-сервера, по-умолчанию "/var/opt/rkn_registry/www/"
     * data_store_path - путь до каталога где будет сохраняться CVS и XML дампы реестра, так же в этом каталоге необходимо создать подкаталог arch/
     * trace - путь до файла с трассировкой событий, по-умолчанию "/var/log/rkn_registry/process.log"
