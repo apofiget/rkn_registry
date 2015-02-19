@@ -39,15 +39,13 @@ handle_act(list, Fn) ->
     case Fn() of
         [] -> prep("ok",[]);
         List -> prep("ok",[json2:obj_from_list(El) || El <-
-                                                          [ lists:foldl(fun(El, Acc) ->
-                                                                                R = case El of
-                                                                                        {entryType, I} ->
-                                                                                            {entryType, tools:get_reg_type(I)};
-                                                                                        {K,V} when V =:= undefined; V =:= [] ->
-                                                                                            {K,<<"Значение атрибута не определено"/utf8>>};
-                                                                                        _-> El
-                                                                                    end, Acc ++ [R]
-                                                                        end, [], E) || E <- List] ])
+                                                          [ lists:reverse(lists:foldl(fun({entryType, I}, Acc) ->
+                                                                                              [{entryType, tools:get_reg_type(I)} | Acc];
+                                                                                         ({K,V}, Acc) when V =:= undefined; V =:= [] ->
+                                                                                              [{K,<<"Значение атрибута не определено"/utf8>>} | Acc];
+                                                                                         (El, Acc) ->
+                                                                                              [El | Acc]
+                                                                                      end, [], E)) || E <- List]])
     end;
 
 handle_act(list_only, Crt) ->
