@@ -76,13 +76,13 @@ handle_call({list_only, Crt}, _From, #{ table := Tid } = State) ->
                                     case lists:member(Elm, Acc) of
                                         true -> Acc;
                                         false ->
-                                            Acc ++ if Crt =:= ip -> Elm;
-                                                      true -> [Elm]
-                                                   end
+                                            lists:append(Acc, if Crt =:= ip -> Elm;
+                                                                 true -> [Elm]
+                                                              end)
                                     end
                             end, [], [proplists:get_value(Crt, E) || {_,{_,E}} <- L])
         end,
-    {reply, R, State};
+    {reply, lists:sort(R), State};
 
 handle_call({clean_old, Ts}, _From, #{ table := Tab } = State) ->
     Ms = ets:fun2ms(fun({H,{T,L}}) when T < Ts -> H end),
