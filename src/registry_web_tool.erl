@@ -64,5 +64,5 @@ handle_act(dump_route, Args) ->
                  end);
 
 handle_act(_,_) -> prep("error","Unknown function").
-
-prep(Status, Data) -> json2:encode(json2:obj_from_list([{"status", Status}, {"version", tools:vsn()}, {"data",  Data}])).
+prep(Status, Data) when Status =:= "error" -> json2:encode(json2:obj_from_list([{"status", Status}, {"version", tools:vsn()}, {"data",  Data}]));
+prep(Status, Data) -> json2:encode(json2:obj_from_list([{"status", Status}, {"version", tools:vsn()}, {"count", length(Data)}, {"data",  Data}])).
