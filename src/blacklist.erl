@@ -99,6 +99,9 @@ get_reply(Url,Id, SavePath) ->
          [{'p:getResultResponse', _, false, _RComment, _Reply, RCode, _DocVer}]} ->
             {error, RCode};
         {ok, _,
+         [{'p:getResultResponse', _, false, _RComment, _Arch, RCode, _DocVer, _OpName, _Inn}]} ->
+            {error, RCode};
+        {ok, _,
          [{'p:getResultResponse', _, true, Reply, RCode}]} when is_integer(RCode) ->
             save_reply(Reply, File, "2.1");
         E -> {error, E}
