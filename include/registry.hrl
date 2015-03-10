@@ -15,7 +15,7 @@
                   {dump_csv, true},
                   {csv_separator, ";"},
                   {csv_fields, [decision,url,domain,ip]},
-                  {dump_format_ver, "2.0"},
+                  {dump_format_ver, "2.1"},
                   {email_on_update, false}
                  ]).
 
