@@ -94,10 +94,19 @@ get_reply(Url,Id, SavePath) ->
             save_reply(Reply, File, "1.0");  %%% Only for 1.0 version !!!
         {ok, _,
          [{'p:getResultResponse', _, true, _RComment, Reply, _RCode, DocVer}]} ->
+            save_reply(Reply, File, DocVer); %%% For 2.0 registry version
+        {ok, _,
+         [{'p:getResultResponse', _, true, _RComment, Reply, _RCode, DocVer, _OpName}]} ->
+            save_reply(Reply, File, DocVer);
+        {ok, _,
+         [{'p:getResultResponse', _, true, _RComment, Reply, _RCode, DocVer, _OpName, _Inn}]} ->
             save_reply(Reply, File, DocVer);
         {ok, _,
          [{'p:getResultResponse', _, false, _RComment, _Reply, RCode, _DocVer}]} ->
             {error, RCode};
+        {ok, _,
+         [{'p:getResultResponse', _, true, Reply, RCode}]} when is_integer(RCode) ->
+            save_reply(Reply, File, "2.1");
         E -> {error, E}
     catch _:X -> {error, X}
     end.
