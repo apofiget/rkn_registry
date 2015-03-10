@@ -89,12 +89,6 @@ get_reply(Url,Id, SavePath) ->
 %%% use try because yaws_soap_lib have error with
 %%% pattern-matching when HTTP error while process RPC
     try yaws_soap_lib:call(Url, "getResult",[Id]) of
-        {ok,_,
-         [{'p:getResultResponse', _, true, _, Reply}]} ->
-            save_reply(Reply, File, "1.0");  %%% Only for 1.0 version !!!
-        {ok, _,
-         [{'p:getResultResponse', _, true, _RComment, Reply, _RCode, DocVer}]} ->
-            save_reply(Reply, File, DocVer); %%% For 2.0 registry version
         {ok, _,
          [{'p:getResultResponse', _, true, _RComment, Reply, _RCode, DocVer, _OpName}]} ->
             save_reply(Reply, File, DocVer);
