@@ -96,14 +96,14 @@ get_reply(Url,Id, SavePath) ->
          [{'p:getResultResponse', _, true, _RComment, Reply, _RCode, DocVer, _OpName, _Inn}]} ->
             save_reply(Reply, File, DocVer);
         {ok, _,
-         [{'p:getResultResponse', _, false, _RComment, _Reply, RCode, _DocVer}]} ->
+         [{'p:getResultResponse', _, true, Reply, RCode}]} when is_integer(RCode) ->
+            save_reply(Reply, File, "2.1");
+        {ok, _,
+         [{'p:getResultResponse', _, false, _RComment, _Reply, RCode, _DocVer, _OpName}]} ->
             {error, RCode};
         {ok, _,
          [{'p:getResultResponse', _, false, _RComment, _Arch, RCode, _DocVer, _OpName, _Inn}]} ->
             {error, RCode};
-        {ok, _,
-         [{'p:getResultResponse', _, true, Reply, RCode}]} when is_integer(RCode) ->
-            save_reply(Reply, File, "2.1");
         E -> {error, E}
     catch _:X -> {error, X}
     end.
