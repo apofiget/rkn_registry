@@ -168,7 +168,7 @@ handle_cast({process_reply, {error,ErrCode}},#{trycount := 10, codestring := Cod
 
 handle_cast({process_reply, {error,ErrCode}},#{trycount := Try, codestring := Code} = State) when is_integer(ErrCode) ->
     lager:debug("GetReply. Codestring: ~p, Trycount: ~p Last reply: ~ts~n",[Code, Try, unicode:characters_to_list(tools:get_result_comment(ErrCode))]),
-    {ok, TRef} = timer:apply_after(Try * 5000, ?MODULE, get_reply, [Code]),
+    {ok, TRef} = timer:apply_after(Try * 15000, ?MODULE, get_reply, [Code]),
     {noreply, State#{trycount := Try + 1, codestring := Code, lastError := tools:get_result_comment(ErrCode), lastErrorDateTime := tools:ts2date(tools:unix_ts()), timer := TRef}};
 
 handle_cast({process_reply, {error,E}},#{trycount := Try, codestring := Code} = State) ->
