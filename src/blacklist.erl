@@ -127,11 +127,13 @@ last_update(Url) ->
 write_csv(Io,[],_S,_E) -> file:close(Io);
 write_csv(Io,[H|T],S,E) ->
     Str = string:join([
-                       if El =:= ip ->
-                               string:join(proplists:get_value(El, H), " ");
-                          true -> proplists:get_all_values(El, H)
+                       case El of
+                           ip ->
+                               string:join(proplists:get_value(El, H, ""), " ");
+                           _ -> proplists:get_all_values(El, H)
                        end
-                       || El <- E], S),
+                       || El <- E
+                      ], S),
     file:write(Io, unicode:characters_to_binary(Str ++ "\n")),
     write_csv(Io,T,S,E).
 
@@ -173,8 +175,8 @@ normalize_proplist(E) ->
      {decision, proplists:get_value(decision, E)},
      {org, proplists:get_value(org, E)},
      {date, proplists:get_value(date, E)},
-     {domain, proplists:get_value(domain, E)},
-     {subnet, proplists:get_value(ipSubnet, E)},
+     {domain, proplists:get_value(domain, E, "")},
+     {subnet, proplists:get_value(ipSubnet, E, "")},
      {blockType, proplists:get_value(blockType, E, "default")},
      {ip, proplists:get_all_values(ip, E)}].
 
