@@ -48,16 +48,18 @@ init([Xml, Sign]) ->
     {ok, #{xml => Xml, sign => Sign, table => Tid, lastDumpDate => 0, codestring => "",
            update_count => 0, trycount => 1, lastError => "", fin_state => send_req, trace => Trace,
            lastArch => "", dumpVersion => tools:get_option(dump_format_ver),
-           lastErrorDateTime => "", childPid => "", timer => TRef, lastCheck => ""}}.
+           lastErrorDateTime => "", childPid => "", timer => TRef, lastCheck => "", recCount => 0}}.
 
 handle_call({status}, _From, #{xml := Xml, sign := Sign, codestring := Code, lastDumpDate := LastDump, update_count := Update, fin_state := FState, lastError := LastErr,
-                               lastErrorDateTime := LastErrDt,  trycount := Try, lastArch := Arch, dumpVersion := DumpVer, childPid := ChildPid, lastCheck := LastCheck } = State) ->
+                               lastErrorDateTime := LastErrDt,  trycount := Try, lastArch := Arch, dumpVersion := DumpVer, childPid := ChildPid, lastCheck := LastCheck,
+                               recCount := Rec_Count} = State) ->
     R = [
          {"XMLRequest", Xml}, {"XMLRequestSign", Sign}, {"dumpFormatVersion", DumpVer},
          {"lastDumpDate",tools:ts2date(LastDump)}, {"lastCheck", LastCheck},
          {"NextAction", tools:to_list(FState)}, {"UpdateCounter", Update}, {"lastArchive", Arch},
          {"LastError", tools:format(LastErr)}, {"lastErrorDateTime", LastErrDt},
-         {"CodeString", Code}, {"LastTryCount", Try}, {"LastChildPid", ChildPid}
+         {"CodeString", Code}, {"LastTryCount", Try}, {"LastChildPid", ChildPid},
+         {"RecCount", Rec_Count}
         ],
     {reply, R, State};
 
@@ -176,7 +178,7 @@ handle_cast({process_reply, {error,E}},#{trycount := Try, codestring := Code} = 
     get_last_update(tools:get_option(get_last_update_period)),
     {noreply, State#{trycount := 1, codestring := "", lastError := term_to_binary(E), fin_state := get_last_update, lastErrorDateTime := tools:ts2date(tools:unix_ts())}};
 
-handle_cast({process_reply, {ok, File, Arch, _Ver}},#{codestring := Code, table := Tid, update_count := Update} = State) ->
+handle_cast({process_reply, {ok, File, Arch, _Ver}},#{codestring := Code, table := Tid, update_count := Update, recCount := OldRecCount} = State) ->
     lager:debug("Code: ~p, Load registry to file: ~p~n",[Code,File]),
     case blacklist:load_xml(File) of
         {ok, List} ->
@@ -192,16 +194,18 @@ handle_cast({process_reply, {ok, File, Arch, _Ver}},#{codestring := Code, table 
                true -> ok
             end,
             Ts = tools:unix_ts(),
+            Rec_Count = length(List),
             spawn(?MODULE, send_notify, [tools:get_option(email_on_update), "RKN registry updates. Has " ++ integer_to_list(length(List)) ++ " records now."]),
             lists:map(fun(E) ->
                               ets:insert(Tid, {erlang:phash2(tools:to_list(proplists:get_value(url, E)) ++ tools:to_list(proplists:get_value(ip, E))), {Ts, E}})
                       end, List),
             timer:apply_after(5000, ?MODULE, clean_old, [Ts]);
         {error, E} ->
+    	    Rec_Count = OldRecCount,
             lager:error("Parse XML error: ~tp~n",[term_to_binary(E)])
     end,
     get_last_update(tools:get_option(get_last_update_period)),
-    {noreply, State#{fin_state := get_last_update, update_count := Update + 1, trycount := 1, codestring := "", lastArch := Arch}};
+    {noreply, State#{fin_state := get_last_update, update_count := Update + 1, trycount := 1, codestring := "", lastArch := Arch, recCount := Rec_Count}};
 
 handle_cast(Msg, State) ->
     lager:debug("Unexpected cast: ~p~n",[Msg]),

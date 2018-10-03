@@ -113,7 +113,8 @@ http://localhost:8899/data.yaws?act=dump_route&spec=csc_set_route&table=Inet
      {"lastErrorDateTime",[]},
      {"CodeString",[]},
      {"LastTryCount",1},
-     {"LastChildPid",[]}]
+     {"LastChildPid",[]},
+     {"RecCount", 127921}]
    #+END_EXAMPLE
 
 ** Запуск готового релиза
